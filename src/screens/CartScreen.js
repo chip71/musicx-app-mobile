@@ -7,13 +7,15 @@ import {
   FlatList,
   Image,
   TouchableOpacity,
-  Alert, // Make sure Alert is imported
+  // Đảm bảo Alert được import
+  Alert, 
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// Chú ý: Dùng Ionicons từ 'react-native-vector-icons/Ionicons'
+import Ionicons from 'react-native-vector-icons/Ionicons'; 
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 
-// ... (CartItem component remains the same)
+// Component đại diện cho một sản phẩm trong giỏ hàng
 const CartItem = ({ item, onIncrease, onDecrease, onRemove }) => (
   <View style={styles.itemContainer}>
     <Image source={{ uri: item.image }} style={styles.itemImage} />
@@ -47,22 +49,37 @@ const CartScreen = ({ navigation }) => {
     0
   );
 
+  // Hàm xử lý khi nhấn "Proceed to Checkout"
   const handleCheckout = () => {
     if (!user) {
+      // Dùng Alert hoặc điều hướng trực tiếp tùy theo cách bạn muốn thông báo
+      // Tùy chọn 1: Hiển thị Alert (như code gốc của bạn)
       Alert.alert(
         'Please Log In',
         'You must be logged in to proceed to checkout.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Log In', onPress: () => navigation.navigate('Profile') },
+          // Chuyển hướng đến Tab Profile, sau đó đến màn hình Login
+          { text: 'Log In', onPress: () => navigation.navigate('Profile', { screen: 'Login' }) },
         ]
       );
+      
+      // Tùy chọn 2 (Nếu muốn điều hướng thẳng):
+      // navigation.navigate('Profile', { screen: 'Login' });
+
     } else {
+      // Đã đăng nhập
       navigation.navigate('Checkout');
     }
   };
+  
+  // Hàm xử lý khi nhấn "Sign In Now" (Nút mới)
+  const handleSignIn = () => {
+    navigation.navigate('Profile', { screen: 'Login' });
+  };
 
-  // ... (Empty cart view remains the same)
+
+  // Hiển thị giỏ hàng trống
   if (cart.length === 0) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -75,6 +92,7 @@ const CartScreen = ({ navigation }) => {
     );
   }
 
+  // Hiển thị giỏ hàng
   return (
     <SafeAreaView style={styles.safeArea}>
       <Navbar showSearch={false} />
@@ -91,6 +109,8 @@ const CartScreen = ({ navigation }) => {
         )}
         ListHeaderComponent={<Text style={styles.title}>My Cart</Text>}
       />
+      
+      {/* CẬP NHẬT FOOTER: Nút Checkout luôn hiện + Nút Sign In Now hiện khi chưa đăng nhập */}
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total</Text>
@@ -98,21 +118,30 @@ const CartScreen = ({ navigation }) => {
             {totalAmount.toLocaleString()} VND
           </Text>
         </View>
-        <TouchableOpacity style={styles.button} onPress={handleCheckout}>
+
+        {/* Nút Checkout luôn hiển thị và nhấn được */}
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={handleCheckout} // Luôn gọi handleCheckout để kiểm tra đăng nhập
+        >
           <Text style={styles.buttonText}>Proceed to Checkout</Text>
         </TouchableOpacity>
 
-        {/* ✅ 1. ADD THIS CONDITIONAL MESSAGE */}
+        {/* Nút Sign In Now chỉ hiển thị khi chưa đăng nhập */}
         {!user && (
-          <Text style={styles.loginPrompt}>
-            You must log in to check out.
-          </Text>
+          <TouchableOpacity 
+            style={[styles.button, styles.signInButton]} // Thêm style phụ để phân biệt
+            onPress={handleSignIn}
+          >
+            <Text style={[styles.buttonText, styles.signInButtonText]}>Sign In Now</Text>
+          </TouchableOpacity>
         )}
       </View>
     </SafeAreaView>
   );
 };
 
+// --- STYLESHEET ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFF' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -164,15 +193,20 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
+    marginBottom: 10, // Thêm khoảng cách dưới cho nút Checkout
   },
   buttonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
-  // ✅ 2. ADD THIS STYLE
-  loginPrompt: {
-    color: '#888',
-    textAlign: 'center',
-    marginTop: 10,
-    fontSize: 14,
+  // Style mới cho nút Sign In Now
+  signInButton: {
+    backgroundColor: '#FFF', // Nền trắng
+    borderWidth: 1,
+    borderColor: '#000',
+    marginTop: 0, // Bỏ khoảng cách mặc định
+    marginBottom: 0, // Bỏ khoảng cách mặc định
   },
+  signInButtonText: {
+    color: '#000', // Chữ đen
+  }
 });
 
 export default CartScreen;

@@ -9,22 +9,20 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
-  Linking,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 
 // --- API Base URL ---
 const API_URL =
   Platform.OS === 'android'
-    ? 'http://10.0.2.2:9999' // Android emulator
+    ? 'http://10.0.2.2:9999'
     : Platform.OS === 'web'
-    ? 'http://localhost:9999' // Web
-    : 'http://192.168.1.100:9999'; // ⚠️ Thay IP này bằng IP LAN thật của máy chạy server
+    ? 'http://localhost:9999'
+    : 'http://192.168.1.100:9999';
 
 const CheckoutScreen = ({ navigation }) => {
-  const { user, cart, clearCart } = useAuth();
+  const { user, cart } = useAuth();
 
   const [form, setForm] = useState({
     recipient: user?.name || '',
@@ -32,13 +30,16 @@ const CheckoutScreen = ({ navigation }) => {
     city: '',
     country: 'Vietnam',
   });
+  const [errors, setErrors] = useState({});
   const [shippingMethod, setShippingMethod] = useState('standard');
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
 
-  const handleInputChange = (field, value) =>
+  const handleInputChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: '' })); // clear error when typing
+  };
 
   // --- Cost Calculations ---
   const subtotal = cart.reduce(
@@ -59,12 +60,43 @@ const CheckoutScreen = ({ navigation }) => {
     }
   };
 
-  // --- Place Order ---
-  const handlePlaceOrder = async () => {
-    if (!form.recipient || !form.street || !form.city) {
-      Alert.alert('Missing Info', 'Please fill in all shipping fields.');
-      return;
+  // --- Validation Logic ---
+  const validateForm = () => {
+    let newErrors = {};
+
+    if (!form.recipient.trim()) {
+      newErrors.recipient = 'Recipient name is required.';
+    } else if (!/^[\p{L}\s]+$/u.test(form.recipient.trim())) {
+      newErrors.recipient = 'Recipient name must contain only letters.';
     }
+
+    if (!form.street.trim()) {
+      newErrors.street = 'Street address is required.';
+    } else if (!/^[\w\s.,-]{5,}$/.test(form.street.trim())) {
+      newErrors.street =
+        'Street address seems invalid (e.g., "123 Lê Lợi St.").';
+    }
+
+    if (!form.city.trim()) {
+      newErrors.city = 'City is required.';
+    } else if (!/^[\p{L}\s]+$/u.test(form.city.trim())) {
+      newErrors.city = 'City name must contain only letters.';
+    }
+
+    if (!form.country.trim()) {
+      newErrors.country = 'Country is required.';
+    } else if (!/^[a-zA-Z\s]+$/.test(form.country.trim())) {
+      newErrors.country = 'Please enter a valid country name.';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // --- Place Order ---
+  const handlePlaceOrder = () => {
+    if (!validateForm()) return;
+
     if (!user || !user._id) {
       Alert.alert('Error', 'User not found. Please log in again.');
       return;
@@ -91,36 +123,7 @@ const CheckoutScreen = ({ navigation }) => {
       orderDate: new Date().toISOString(),
     };
 
-    try {
-      if (paymentMethod === 'momo') {
-        Alert.alert('Redirecting to MoMo...');
-        const res = await axios.post(
-          `${API_URL}/api/payments/momo/create-link`,
-          orderPayload
-        );
-        const payUrl = res.data.payUrl;
-        if (payUrl) {
-          const canOpen = await Linking.canOpenURL(payUrl);
-          if (canOpen) {
-            await Linking.openURL(payUrl);
-            clearCart();
-            navigation.popToTop();
-          } else {
-            Alert.alert('Error', 'Cannot open MoMo. Please check installation.');
-          }
-        }
-      } else {
-        await axios.post(`${API_URL}/api/orders`, orderPayload);
-        clearCart();
-        navigation.popToTop();
-      }
-    } catch (err) {
-      console.error('❌ Order failed:', err);
-      const msg =
-        err.response?.data?.message ||
-        'Could not place your order. Please try again.';
-      Alert.alert('Order Failed', msg);
-    }
+    navigation.navigate('AfterCheckoutDetail', { orderPayload });
   };
 
   return (
@@ -170,21 +173,30 @@ const CheckoutScreen = ({ navigation }) => {
         {/* --- Shipping Info --- */}
         <Text style={styles.sectionTitle}>Shipping Address</Text>
         {['recipient', 'street', 'city', 'country'].map((field, i) => (
-          <View style={styles.inputContainer} key={i}>
-            <TextInput
-              placeholder={
-                field === 'recipient'
-                  ? 'Recipient Name'
-                  : field === 'street'
-                  ? 'Street Address'
-                  : field === 'city'
-                  ? 'City (e.g., Quận 1, TP.HCM)'
-                  : 'Country'
-              }
-              style={styles.input}
-              value={form[field]}
-              onChangeText={(v) => handleInputChange(field, v)}
-            />
+          <View key={i} style={{ marginBottom: 10 }}>
+            <View
+              style={[
+                styles.inputContainer,
+                errors[field] && { borderColor: 'red', borderWidth: 1 },
+              ]}>
+              <TextInput
+                placeholder={
+                  field === 'recipient'
+                    ? 'Recipient Name'
+                    : field === 'street'
+                    ? 'Street Address'
+                    : field === 'city'
+                    ? 'City (e.g., Quận 1, TP.HCM)'
+                    : 'Country'
+                }
+                style={styles.input}
+                value={form[field]}
+                onChangeText={(v) => handleInputChange(field, v)}
+              />
+            </View>
+            {errors[field] && (
+              <Text style={styles.errorText}>{errors[field]}</Text>
+            )}
           </View>
         ))}
 
@@ -275,21 +287,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
   sectionTitle: { fontSize: 18, fontWeight: '600', marginTop: 20, marginBottom: 10 },
-  summaryBox: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    padding: 15,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  costRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 5,
-  },
+  summaryBox: { backgroundColor: '#f9f9f9', borderRadius: 8, padding: 15 },
+  itemRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  costRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 },
   itemText: { fontSize: 16, color: '#333' },
   discountText: { fontSize: 16, color: 'green' },
   totalRow: {
@@ -305,12 +305,12 @@ const styles = StyleSheet.create({
   inputContainer: {
     backgroundColor: '#F2F2F2',
     borderRadius: 8,
-    marginBottom: 16,
     height: 50,
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
   input: { color: '#000', fontSize: 16 },
+  errorText: { color: 'red', fontSize: 13, marginTop: 4, marginLeft: 5 },
   optionButton: {
     flexDirection: 'row',
     alignItems: 'center',

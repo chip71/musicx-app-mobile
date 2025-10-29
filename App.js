@@ -20,7 +20,7 @@ import OrderHistoryScreen from './src/screens/OrderHistoryScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 import ArtistDetailScreen from './src/screens/ArtistDetailScreen';
-
+import AfterCheckoutDetailScreen from './src/screens/AfterCheckoutDetailScreen';
 // Navigation setup
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -94,6 +94,7 @@ export default function App() {
           <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Checkout" component={CheckoutScreen} options={{ title: 'Checkout' }} />
+          <Stack.Screen name="AfterCheckoutDetail" component={AfterCheckoutDetailScreen} options={{ headerShown: false }} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

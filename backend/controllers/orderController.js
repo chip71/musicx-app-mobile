@@ -1,28 +1,41 @@
-// controllers/orderController.js
 const Order = require('../models/orders');
+const Album = require('../models/albums');
 const crypto = require('crypto');
 
-// 🆕 Helper to generate orderId like ORD-20251026-XYZ123
 function generateOrderId() {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const random = crypto.randomBytes(3).toString('hex').toUpperCase();
   return `ORD-${date}-${random}`;
 }
+function generateSku() {
+  return `SKU-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+}
 
-// =============================================
-// CREATE ORDER
-// =============================================
+// CREATE ORDER (with stock update)
 exports.createOrder = async (req, res) => {
   try {
     const body = req.body;
-
-    if (!body.userId || !body.items || body.items.length === 0) {
+    if (!body.userId || !body.items?.length) {
       return res.status(400).json({ message: 'Missing required fields: userId or items' });
     }
 
-    // ✅ Add generated orderId if not provided
+    // Check stock before creating
+    for (const item of body.items) {
+      const album = await Album.findById(item.albumId);
+      if (!album) return res.status(400).json({ message: `Album not found: ${item.albumId}` });
+      if (album.stock < item.quantity) {
+        return res.status(400).json({ message: `Not enough stock for ${album.name}` });
+      }
+    }
+
+    const itemsWithSku = body.items.map(item => ({
+      ...item,
+      sku: item.sku || generateSku(),
+    }));
+
     const orderData = {
       ...body,
+      items: itemsWithSku,
       orderId: body.orderId || generateOrderId(),
       status: body.status || 'pending',
       orderDate: body.orderDate || new Date(),
@@ -31,42 +44,33 @@ exports.createOrder = async (req, res) => {
     const newOrder = new Order(orderData);
     await newOrder.save();
 
-    res.status(201).json({
-      message: '✅ Order created successfully',
-      order: newOrder,
-    });
+    // Decrease stock
+    for (const item of itemsWithSku) {
+      const album = await Album.findById(item.albumId);
+      if (album) {
+        album.stock = Math.max(album.stock - item.quantity, 0);
+        await album.save();
+        console.log(`🟢 Updated stock for ${album.name}: ${album.stock}`);
+      }
+    }
+
+    res.status(201).json({ message: '✅ Order created successfully', order: newOrder });
   } catch (err) {
     console.error('❌ Error creating order:', err);
-    res.status(500).json({
-      message: err.message || 'Failed to create order',
-    });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// =============================================
 // GET USER ORDERS
-// =============================================
 exports.getUserOrders = async (req, res) => {
   try {
     const { userId } = req.params;
     if (!userId) return res.status(400).json({ message: 'Missing userId' });
 
-    const orders = await Order.find({ userId }).sort({ createdAt: -1 });
+    const orders = await Order.find({ userId }).sort({ orderDate: -1 });
     res.json(orders);
   } catch (err) {
     console.error('❌ Error fetching user orders:', err);
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// =============================================
-// GET ALL ORDERS (ADMIN)
-// =============================================
-exports.getOrders = async (req, res) => {
-  try {
-    const orders = await Order.find().sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
