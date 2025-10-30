@@ -7,7 +7,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -17,9 +17,11 @@ const LoginScreen = ({ navigation }) => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [fadeAnim] = useState(new Animated.Value(0));
+
   const { login } = useAuth();
 
-  // --- Field Validation ---
   const validateField = (field, value) => {
     let error = '';
     if (field === 'email') {
@@ -36,6 +38,7 @@ const LoginScreen = ({ navigation }) => {
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     validateField(field, value);
+    setLoginError(''); // clear any previous login error
   };
 
   const validateAll = () => {
@@ -44,10 +47,9 @@ const LoginScreen = ({ navigation }) => {
     return !errors.email && !errors.password && form.email && form.password;
   };
 
-  // --- Submit ---
   const handleSubmit = async () => {
     if (!validateAll()) {
-      Alert.alert('⚠️ Invalid Input', 'Please check your email and password.');
+      setLoginError('Please check your email and password.');
       return;
     }
 
@@ -56,10 +58,15 @@ const LoginScreen = ({ navigation }) => {
     setLoading(false);
 
     if (success) {
-      Alert.alert('✅ Welcome back!', 'Logged in successfully.');
+      setLoginError('');
       navigation.goBack();
     } else {
-      Alert.alert('❌ Login Failed', 'Please check your credentials.');
+      setLoginError('Invalid email or password.');
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
     }
   };
 
@@ -106,6 +113,13 @@ const LoginScreen = ({ navigation }) => {
         </View>
         {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
+        {/* --- Login Error --- */}
+        {loginError ? (
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <Text style={styles.loginError}>{loginError}</Text>
+          </Animated.View>
+        ) : null}
+
         {/* --- Sign In Button --- */}
         <TouchableOpacity
           style={[styles.button, loading && { backgroundColor: '#333' }]}
@@ -129,7 +143,6 @@ const LoginScreen = ({ navigation }) => {
   );
 };
 
-// --- Styles ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFF' },
   authContainer: { flex: 1, justifyContent: 'center', padding: 24 },
@@ -168,6 +181,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 8,
     marginLeft: 4,
+  },
+  loginError: {
+    color: '#D8000C',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+    backgroundColor: '#FFD2D2',
+    padding: 6,
+    borderRadius: 6,
   },
   button: {
     backgroundColor: '#000',

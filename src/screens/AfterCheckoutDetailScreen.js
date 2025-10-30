@@ -18,8 +18,8 @@ const API_URL =
   Platform.OS === 'android'
     ? 'http://10.0.2.2:9999'
     : Platform.OS === 'web'
-      ? 'http://localhost:9999'
-      : 'http://192.168.1.100:9999';
+    ? 'http://localhost:9999'
+    : 'http://192.168.137.1:9999';
 
 const AfterCheckoutDetailScreen = ({ route, navigation }) => {
   const { orderPayload } = route.params || {};
@@ -39,7 +39,7 @@ const AfterCheckoutDetailScreen = ({ route, navigation }) => {
         userId: user?._id,
         orderId: orderPayload.orderId,
         items: orderPayload.items.map((item) => ({
-          albumId: item._id || item.albumId, // must be ObjectId
+          albumId: item._id || item.albumId,
           sku:
             item.sku ||
             `SKU-${item._id || item.albumId || Math.random().toString(36).substring(2, 7)}`,
@@ -70,26 +70,19 @@ const AfterCheckoutDetailScreen = ({ route, navigation }) => {
       clearCart();
       setLoading(false);
 
-      // ✅ Use reset to cleanly redirect user to Order History
+      // ✅ Redirect directly to Home (Explore) tab
       navigation.reset({
         index: 0,
         routes: [
           {
             name: 'MainTabs',
             state: {
-              routes: [
-                {
-                  name: 'Profile',
-                  state: {
-                    routes: [{ name: 'OrderHistory' }],
-                  },
-                },
-              ],
+              routes: [{ name: 'Explore' }],
+              index: 0, // ensures Explore tab is selected
             },
           },
         ],
       });
-
     } catch (err) {
       setLoading(false);
       console.error('❌ Order failed:', err.response?.data || err.message);
@@ -99,7 +92,6 @@ const AfterCheckoutDetailScreen = ({ route, navigation }) => {
       );
     }
   };
-
 
   const handleCancel = () => navigation.goBack();
 
@@ -191,8 +183,8 @@ const AfterCheckoutDetailScreen = ({ route, navigation }) => {
             {paymentMethod === 'momo'
               ? 'MoMo Wallet'
               : paymentMethod === 'card'
-                ? 'Credit / Debit Card'
-                : 'Cash on Delivery (COD)'}
+              ? 'Credit / Debit Card'
+              : 'Cash on Delivery (COD)'}
           </Text>
         </View>
 

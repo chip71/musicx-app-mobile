@@ -71,7 +71,7 @@ const ProfileScreen = ({ navigation }) => {
         <Text style={styles.logo}>MUSICX</Text>
         <Text style={styles.title}>My Profile</Text>
         <Text style={styles.promptText}>
-          Please sign in or create an account to view your profile, orders, and wantlist.
+          Please sign in or create an account to view your profile, orders.
         </Text>
         <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Login')}>
           <Text style={styles.buttonText}>Sign In</Text>

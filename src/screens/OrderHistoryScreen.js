@@ -19,7 +19,7 @@ const API_URL =
     ? 'http://10.0.2.2:9999'
     : Platform.OS === 'web'
     ? 'http://localhost:9999'
-    : 'http://192.168.137.1:9999'; // Ensure this IP is correct
+    : 'http://192.168.137.1:9999'; // Update IP if needed
 
 // --- Helper to format date ---
 const formatDate = (dateString) => {
@@ -27,20 +27,22 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', options);
 };
 
-// --- Order Item Component ---
-const OrderCard = ({ order }) => (
+// --- Order Card ---
+const OrderCard = ({ order, onViewDetail }) => (
   <View style={styles.orderCard}>
     <View style={styles.orderHeader}>
       <Text style={styles.orderId}>{order.orderId}</Text>
       <Text style={styles.orderDate}>{formatDate(order.orderDate)}</Text>
     </View>
+
     <View style={styles.orderDetails}>
       {order.items.map((item, index) => (
         <Text key={index} style={styles.itemText} numberOfLines={1}>
-          - {item.name} (x{item.quantity})
+          • {item.name} (x{item.quantity})
         </Text>
       ))}
     </View>
+
     <View style={styles.orderFooter}>
       <Text style={[styles.status, styles[`status${order.status}`]]}>
         {order.status.toUpperCase()}
@@ -49,10 +51,15 @@ const OrderCard = ({ order }) => (
         {order.totalAmount.toLocaleString()} {order.currency}
       </Text>
     </View>
+
+    {/* ✅ View Details Button */}
+    <TouchableOpacity style={styles.detailButton} onPress={() => onViewDetail(order)}>
+      <Text style={styles.detailButtonText}>View Details</Text>
+    </TouchableOpacity>
   </View>
 );
 
-// --- Main Screen Component ---
+// --- Main Screen ---
 const OrderHistoryScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
@@ -70,7 +77,7 @@ const OrderHistoryScreen = ({ navigation }) => {
         setIsLoading(true);
         setError(null);
         const response = await axios.get(`${API_URL}/api/users/${user._id}/orders`);
-        setOrders(response.data.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))); // Sort newest first
+        setOrders(response.data.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate)));
       } catch (err) {
         console.error('Error fetching orders:', err);
         setError('Could not load order history.');
@@ -80,9 +87,8 @@ const OrderHistoryScreen = ({ navigation }) => {
     };
 
     fetchOrders();
-  }, [user]); // Re-fetch if user changes
+  }, [user]);
 
-  // --- Render Logic ---
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -96,7 +102,6 @@ const OrderHistoryScreen = ({ navigation }) => {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>{error}</Text>
-        {/* Optional: Add a button to go back or retry */}
       </View>
     );
   }
@@ -106,7 +111,9 @@ const OrderHistoryScreen = ({ navigation }) => {
       <FlatList
         data={orders}
         keyExtractor={(item) => item._id}
-        renderItem={({ item }) => <OrderCard order={item} />}
+        renderItem={({ item }) => (
+          <OrderCard order={item} onViewDetail={() => navigation.navigate('OrderDetail', { order: item })} />
+        )}
         ListHeaderComponent={<Text style={styles.screenTitle}>My Orders</Text>}
         ListEmptyComponent={
           <View style={styles.center}>
@@ -122,64 +129,54 @@ const OrderHistoryScreen = ({ navigation }) => {
 
 // --- STYLES ---
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFF' },
+  safeArea: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   errorText: { color: 'red', fontSize: 16, textAlign: 'center' },
   emptyText: { fontSize: 16, color: '#888', marginTop: 10, textAlign: 'center' },
-  screenTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    paddingHorizontal: 16,
-    paddingTop: 10, // Adjust if using a custom header later
-    paddingBottom: 15,
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
+  screenTitle: { fontSize: 24, fontWeight: 'bold', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 15, color: '#000' },
+  listContent: { paddingBottom: 20 },
   orderCard: {
     backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+    borderRadius: 12,
     marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 15,
+    marginBottom: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#eee',
   },
-  orderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  orderId: { fontWeight: 'bold', fontSize: 16 },
-  orderDate: { fontSize: 12, color: '#666' },
-  orderDetails: {
-    marginBottom: 10,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
+  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  orderId: { fontWeight: 'bold', fontSize: 16, color: '#000' },
+  orderDate: { fontSize: 13, color: '#666' },
+  orderDetails: { marginBottom: 10, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#eee' },
   itemText: { fontSize: 14, color: '#444', marginBottom: 2 },
-  orderFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  orderFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   status: {
     fontWeight: 'bold',
-    fontSize: 14,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    overflow: 'hidden', // Ensures background color respects border radius
-    color: '#FFF',
+    fontSize: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
+    color: '#fff',
   },
-  // Status-specific background colors (adjust as needed)
-  statuspending: { backgroundColor: '#FFA500' }, // Orange
-  statuspending_payment: { backgroundColor: '#FFD700' }, // Gold
-  statusshipped: { backgroundColor: '#1E90FF' }, // DodgerBlue
-  statusdelivered: { backgroundColor: '#32CD32' }, // LimeGreen
-  statuscancelled: { backgroundColor: '#FF4500' }, // OrangeRed
-  totalAmount: { fontWeight: 'bold', fontSize: 16 },
+  statuspending: { backgroundColor: '#ff960cff' },
+  statuspending_payment: { backgroundColor: '#bf9f00ff' },
+  statusshipped: { backgroundColor: '#1E90FF' },
+  statusdelivered: { backgroundColor: '#1DB954' }, // ✅ Spotify green accent
+  statuscancelled: { backgroundColor: '#FF3B30' },
+  totalAmount: { fontWeight: '700', fontSize: 16, color: '#000' },
+  detailButton: {
+    backgroundColor: '#000',
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  detailButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 15,
+  },
 });
 
 export default OrderHistoryScreen;

@@ -18,8 +18,8 @@ const API_URL =
   Platform.OS === 'android'
     ? 'http://10.0.2.2:9999'
     : Platform.OS === 'web'
-    ? 'http://localhost:9999'
-    : 'http://192.168.1.100:9999';
+      ? 'http://localhost:9999'
+      : 'http://192.168.137.1:9999';
 
 const CheckoutScreen = ({ navigation }) => {
   const { user, cart } = useAuth();
@@ -72,16 +72,12 @@ const CheckoutScreen = ({ navigation }) => {
 
     if (!form.street.trim()) {
       newErrors.street = 'Street address is required.';
-    } else if (!/^[\w\s.,-]{5,}$/.test(form.street.trim())) {
-      newErrors.street =
-        'Street address seems invalid (e.g., "123 Lê Lợi St.").';
     }
 
     if (!form.city.trim()) {
       newErrors.city = 'City is required.';
-    } else if (!/^[\p{L}\s]+$/u.test(form.city.trim())) {
-      newErrors.city = 'City name must contain only letters.';
     }
+
 
     if (!form.country.trim()) {
       newErrors.country = 'Country is required.';
@@ -184,10 +180,10 @@ const CheckoutScreen = ({ navigation }) => {
                   field === 'recipient'
                     ? 'Recipient Name'
                     : field === 'street'
-                    ? 'Street Address'
-                    : field === 'city'
-                    ? 'City (e.g., Quận 1, TP.HCM)'
-                    : 'Country'
+                      ? 'Street Address'
+                      : field === 'city'
+                        ? 'City (e.g., Quận 1, TP.HCM)'
+                        : 'Country'
                 }
                 style={styles.input}
                 value={form[field]}

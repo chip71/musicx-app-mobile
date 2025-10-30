@@ -17,10 +17,12 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import CartScreen from './src/screens/CartScreen';
 import CheckoutScreen from './src/screens/CheckoutScreen';
 import OrderHistoryScreen from './src/screens/OrderHistoryScreen';
+import OrderDetailScreen from './src/screens/OrderDetailScreen'; // ✅ Added
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 import ArtistDetailScreen from './src/screens/ArtistDetailScreen';
 import AfterCheckoutDetailScreen from './src/screens/AfterCheckoutDetailScreen';
+
 // Navigation setup
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -34,11 +36,37 @@ function ProfileStackScreen() {
         component={ProfileScreen}
         options={{ headerShown: false }}
       />
-      <ProfileStack.Screen name="Login" component={LoginScreen} options={{ title: 'Sign In' }} />
-      <ProfileStack.Screen name="Register" component={RegisterScreen} options={{ title: 'Create Account' }} />
-      <ProfileStack.Screen name="OrderHistory" component={OrderHistoryScreen} options={{ title: 'My Orders' }} />
-      <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit Profile' }} />
-      <ProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} options={{ title: 'Change Password' }} />
+      <ProfileStack.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{ title: 'Sign In' }}
+      />
+      <ProfileStack.Screen
+        name="Register"
+        component={RegisterScreen}
+        options={{ title: 'Create Account' }}
+      />
+      <ProfileStack.Screen
+        name="OrderHistory"
+        component={OrderHistoryScreen}
+        options={{ title: 'My Orders' }}
+      />
+      {/* ✅ New screen for order details */}
+      <ProfileStack.Screen
+        name="OrderDetail"
+        component={OrderDetailScreen}
+        options={{ title: 'Order Detail' }}
+      />
+      <ProfileStack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ title: 'Edit Profile' }}
+      />
+      <ProfileStack.Screen
+        name="ChangePassword"
+        component={ChangePasswordScreen}
+        options={{ title: 'Change Password' }}
+      />
     </ProfileStack.Navigator>
   );
 }
@@ -90,11 +118,31 @@ export default function App() {
     <AuthProvider>
       <NavigationContainer>
         <Stack.Navigator>
-          <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-          <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="Checkout" component={CheckoutScreen} options={{ title: 'Checkout' }} />
-          <Stack.Screen name="AfterCheckoutDetail" component={AfterCheckoutDetailScreen} options={{ headerShown: false }} />
+          <Stack.Screen
+            name="MainTabs"
+            component={MainTabs}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AlbumDetail"
+            component={AlbumDetailScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ArtistDetail"
+            component={ArtistDetailScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Checkout"
+            component={CheckoutScreen}
+            options={{ title: 'Checkout' }}
+          />
+          <Stack.Screen
+            name="AfterCheckoutDetail"
+            component={AfterCheckoutDetailScreen}
+            options={{ headerShown: false }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

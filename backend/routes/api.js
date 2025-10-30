@@ -8,7 +8,6 @@ const genreController = require('../controllers/genreController.js');
 const userController = require('../controllers/userController.js');
 const orderController = require('../controllers/orderController.js');
 const paymentController = require('../controllers/paymentController.js');
-const wantlistController = require('../controllers/wantlistController.js');
 const authController = require('../controllers/authController.js');
 
 // Safety wrapper
@@ -50,6 +49,7 @@ router.get('/genres/:id', safe(genreController.getGenreById));
 router.get('/users/:userId/orders', safe(orderController.getUserOrders)); // 👈 Fetch user's orders
 router.get('/orders', safe(orderController.getOrders)); // 👈 Admin or all orders
 router.post('/orders', safe(orderController.createOrder)); // 👈 Create new order
+router.put('/orders/:id/cancel', safe(orderController.cancelOrder));
 
 /*
  * ===========================================
@@ -61,15 +61,6 @@ router.get('/users/:id', safe(userController.getUserById));
 router.put('/users/profile', safe(userController.updateUserProfile));
 router.put('/users/password', safe(userController.changeUserPassword));
 
-/*
- * ===========================================
- * WANTLIST ROUTES
- * ===========================================
- */
-
-router.get('/wantlists', safe(wantlistController.getWantlists));
-router.post('/wantlists', safe(wantlistController.addToWantlists));
-router.delete('/wantlists/:albumId', safe(wantlistController.removeFromWantlists));
 
 /*
  * ===========================================

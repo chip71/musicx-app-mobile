@@ -74,3 +74,39 @@ exports.getUserOrders = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+// CANCEL ORDER (and restock albums)
+exports.cancelOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found.' });
+    }
+
+    // If order already shipped, delivered, or cancelled
+    if (['shipped', 'delivered', 'cancelled'].includes(order.status)) {
+      return res
+        .status(400)
+        .json({ message: `Cannot cancel order with status: ${order.status}` });
+    }
+
+    // Restore stock
+    for (const item of order.items) {
+      const album = await Album.findById(item.albumId);
+      if (album) {
+        album.stock += item.quantity;
+        await album.save();
+        console.log(`🔁 Restored ${item.quantity} to ${album.name}.`);
+      }
+    }
+
+    order.status = 'cancelled';
+    await order.save();
+
+    res.json({ message: '✅ Order cancelled and stock restored.', order });
+  } catch (err) {
+    console.error('❌ Cancel order error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
