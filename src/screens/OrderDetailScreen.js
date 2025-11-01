@@ -16,8 +16,8 @@ const API_URL =
   Platform.OS === 'android'
     ? 'http://10.0.2.2:9999'
     : Platform.OS === 'web'
-    ? 'http://localhost:9999'
-    : 'http://192.168.137.1:9999';
+      ? 'http://localhost:9999'
+      : 'http://192.168.137.1:9999';
 
 const OrderDetailScreen = ({ route }) => {
   const { order } = route.params;
@@ -26,30 +26,26 @@ const OrderDetailScreen = ({ route }) => {
 
   // ✅ Cancel order function
   const handleCancelOrder = async () => {
-    Alert.alert('Cancel Order', 'Are you sure you want to cancel this order?', [
-      { text: 'No', style: 'cancel' },
-      {
-        text: 'Yes, Cancel',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setIsProcessing(true);
-            const res = await axios.put(`${API_URL}/api/orders/${order._id}/cancel`);
-            setStatus('cancelled');
-            Alert.alert('✅ Success', res.data.message || 'Order cancelled successfully.');
-          } catch (err) {
-            console.error('Cancel error:', err);
-            Alert.alert(
-              '❌ Network Error',
-              'Could not connect to the server. Please check your API URL or network.'
-            );
-          } finally {
-            setIsProcessing(false);
-          }
-        },
-      },
-    ]);
+    try {
+      setIsProcessing(true);
+      const res = await axios.put(`${API_URL}/api/orders/${order._id}/cancel`);
+
+      // Cập nhật status từ server
+      const updatedOrder = res.data.order || { status: 'cancelled' };
+      setStatus(updatedOrder.status);
+
+      Alert.alert('✅ Success', res.data.message || 'Order cancelled successfully.');
+    } catch (err) {
+      console.error('Cancel error:', err);
+      Alert.alert(
+        '❌ Network Error',
+        'Could not connect to the server. Please check your API URL or network.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
 
   return (
     <ScrollView style={styles.container}>

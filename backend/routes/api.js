@@ -9,14 +9,17 @@ const userController = require('../controllers/userController.js');
 const orderController = require('../controllers/orderController.js');
 const paymentController = require('../controllers/paymentController.js');
 const authController = require('../controllers/authController.js');
+const adminController = require('../controllers/adminController.js');
 
-// Safety wrapper
+// Safe wrapper để tránh lỗi controller chưa định nghĩa
 const safe = (fn) =>
   typeof fn === 'function'
     ? fn
     : (req, res) => {
         console.error(`❌ ROUTER ERROR: Controller function not found for path ${req.path}`);
-        res.status(500).json({ error: 'Server configuration error: Controller function missing.' });
+        res.status(500).json({
+          error: 'Server configuration error: Controller function missing.'
+        });
       };
 
 /*
@@ -25,7 +28,7 @@ const safe = (fn) =>
  * ===========================================
  */
 
-// ✅ Albums (Order matters for /:id and /artist/:id)
+// ✅ Albums
 router.get('/albums', safe(albumController.getAlbums));
 router.get('/albums/artist/:id', safe(albumController.getAlbumsByArtistId));
 router.get('/albums/genre/:id', safe(albumController.getAlbumsByGenreId));
@@ -45,31 +48,41 @@ router.get('/genres/:id', safe(genreController.getGenreById));
  * ===========================================
  */
 
-// ✅ Orders
-router.get('/users/:userId/orders', safe(orderController.getUserOrders)); // 👈 Fetch user's orders
-router.get('/orders', safe(orderController.getOrders)); // 👈 Admin or all orders
-router.post('/orders', safe(orderController.createOrder)); // 👈 Create new order
-router.put('/orders/:id/cancel', safe(orderController.cancelOrder));
+// 🟢 USER ORDERS (User-side)
+router.get('/users/:userId/orders', safe(orderController.getUserOrders)); // user order history
+router.post('/orders', safe(orderController.createOrder)); // create new order
+router.put('/orders/:id/cancel', safe(orderController.cancelOrder)); // cancel by user
+
+// 🟢 ADMIN ORDERS (Admin-side)
+router.get('/orders', safe(orderController.getAllOrders)); // ✅ get all orders
+router.get('/orders/:id', safe(orderController.getOrderById)); // ✅ get one order
+router.put('/orders/:id', safe(orderController.updateOrder)); // ✅ update status (dropdown)
+router.delete('/orders/:id', safe(orderController.deleteOrder)); // ✅ delete order
 
 /*
  * ===========================================
  * USER PROFILE ROUTES
  * ===========================================
  */
-
 router.get('/users/:id', safe(userController.getUserById));
 router.put('/users/profile', safe(userController.updateUserProfile));
 router.put('/users/password', safe(userController.changeUserPassword));
-
 
 /*
  * ===========================================
  * AUTH ROUTES
  * ===========================================
  */
-
 router.post('/auth/login', safe(authController.loginUser));
 router.post('/auth/register', safe(authController.registerUser));
+
+/*
+ * ===========================================
+ * ADMIN DASHBOARD ROUTES
+ * ===========================================
+ */
+router.get('/admin/stats', safe(adminController.getAdminStats));
+router.get('/admin/revenue', safe(adminController.getRevenueStats));
 
 /*
  * ===========================================

@@ -1,14 +1,15 @@
-const User = require('../models/users'); // Use correct path
+const User = require('../models/users');
 const crypto = require('crypto');
 
-// Hash helper (simple SHA256, consider using bcrypt in production)
+// --- Simple SHA256 hash helper ---
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-// ✅ Login
+// ✅ LOGIN
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
+
   try {
     const user = await User.findOne({ email });
     if (!user) {
@@ -16,33 +17,32 @@ exports.loginUser = async (req, res) => {
     }
 
     // --- Password Check ---
-    // Extract the hash part from your stored passwordHash
-    // (Assumes format like "sha256$<salt_if_any>$hash" or "sha256$hash")
     const storedHashParts = user.passwordHash.split('$');
-    const storedHash = storedHashParts[storedHashParts.length - 1]; // Get the last part
+    const storedHash = storedHashParts[storedHashParts.length - 1]; // get last segment
     const inputHash = hashPassword(password);
 
     if (inputHash !== storedHash) {
       return res.status(401).json({ message: 'Invalid password' });
     }
-    // --- End Password Check ---
 
-    // ✅ Return _id instead of numeric id
+    // ✅ Include role in response so frontend knows if user is admin or customer
     res.json({
-      _id: user._id, // Send the MongoDB _id
+      _id: user._id,
       name: user.name,
       email: user.email,
+      role: user.role, // ✅ add this
+      createdAt: user.createdAt,
     });
-
   } catch (err) {
     console.error('❌ Login error:', err);
     res.status(500).json({ message: 'Server error during login' });
   }
 };
 
-// ✅ Register
+// ✅ REGISTER
 exports.registerUser = async (req, res) => {
   const { name, email, password } = req.body;
+
   try {
     const exists = await User.findOne({ email });
     if (exists) {
@@ -50,27 +50,25 @@ exports.registerUser = async (req, res) => {
     }
 
     const hashed = hashPassword(password);
-    
-    // Create user WITHOUT the numeric 'id' field
+
+    // Default to 'customer' role
     const newUser = await User.create({
       name,
       email,
-      // Store hash in a consistent format (adjust if you add salts later)
       passwordHash: `sha256$${hashed}`,
       role: 'customer',
-      // 'createdAt' is handled by Mongoose default 'timestamps: true' if you add it to your schema
     });
 
-    // ✅ Return _id instead of numeric id
+    // ✅ Include role in response for immediate use
     res.status(201).json({
-      _id: newUser._id, // Send the MongoDB _id
+      _id: newUser._id,
       name: newUser.name,
       email: newUser.email,
+      role: newUser.role, // ✅ added
+      createdAt: newUser.createdAt,
     });
-
   } catch (err) {
     console.error('❌ Register error:', err);
-    // Provide more detail if it's a validation error
     if (err.name === 'ValidationError') {
       return res.status(400).json({ message: err.message });
     }

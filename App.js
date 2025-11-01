@@ -4,74 +4,92 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useAuth, AuthProvider } from './src/context/AuthContext';
 
-import { AuthProvider } from './src/context/AuthContext';
-
-// Screens
+// Screens (User)
 import HomeScreen from './src/screens/HomeScreen';
 import AlbumScreen from './src/screens/AlbumScreen';
 import AlbumDetailScreen from './src/screens/AlbumDetailScreen';
+import ArtistDetailScreen from './src/screens/ArtistDetailScreen';
+import CartScreen from './src/screens/CartScreen';
+import CheckoutScreen from './src/screens/CheckoutScreen';
+import AfterCheckoutDetailScreen from './src/screens/AfterCheckoutDetailScreen';
+
+// Screens (Profile)
 import ProfileScreen from './src/screens/ProfileScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
-import CartScreen from './src/screens/CartScreen';
-import CheckoutScreen from './src/screens/CheckoutScreen';
 import OrderHistoryScreen from './src/screens/OrderHistoryScreen';
-import OrderDetailScreen from './src/screens/OrderDetailScreen'; // ✅ Added
+import OrderDetailScreen from './src/screens/OrderDetailScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
-import ArtistDetailScreen from './src/screens/ArtistDetailScreen';
-import AfterCheckoutDetailScreen from './src/screens/AfterCheckoutDetailScreen';
+
+// Screens (Admin)
+import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
+import ManageOrdersScreen from './src/screens/ManageOrdersScreen'; // ✅ NEW IMPORT
 
 // Navigation setup
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const ProfileStack = createNativeStackNavigator();
 
+// ✅ Profile stack (user login/register/profile)
 function ProfileStackScreen() {
+  const { user } = useAuth();
+
   return (
     <ProfileStack.Navigator>
-      <ProfileStack.Screen
-        name="ProfileMain"
-        component={ProfileScreen}
-        options={{ headerShown: false }}
-      />
-      <ProfileStack.Screen
-        name="Login"
-        component={LoginScreen}
-        options={{ title: 'Sign In' }}
-      />
-      <ProfileStack.Screen
-        name="Register"
-        component={RegisterScreen}
-        options={{ title: 'Create Account' }}
-      />
-      <ProfileStack.Screen
-        name="OrderHistory"
-        component={OrderHistoryScreen}
-        options={{ title: 'My Orders' }}
-      />
-      {/* ✅ New screen for order details */}
-      <ProfileStack.Screen
-        name="OrderDetail"
-        component={OrderDetailScreen}
-        options={{ title: 'Order Detail' }}
-      />
-      <ProfileStack.Screen
-        name="EditProfile"
-        component={EditProfileScreen}
-        options={{ title: 'Edit Profile' }}
-      />
-      <ProfileStack.Screen
-        name="ChangePassword"
-        component={ChangePasswordScreen}
-        options={{ title: 'Change Password' }}
-      />
+      {!user ? (
+        <>
+          <ProfileStack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ title: 'Sign In' }}
+          />
+          <ProfileStack.Screen
+            name="Register"
+            component={RegisterScreen}
+            options={{ title: 'Create Account' }}
+          />
+        </>
+      ) : (
+        <>
+          <ProfileStack.Screen
+            name="ProfileMain"
+            component={ProfileScreen}
+            options={{ headerShown: false }}
+          />
+          <ProfileStack.Screen
+            name="OrderHistory"
+            component={OrderHistoryScreen}
+            options={{ title: 'My Orders' }}
+          />
+          <ProfileStack.Screen
+            name="OrderDetail"
+            component={OrderDetailScreen}
+            options={{ title: 'Order Detail' }}
+          />
+          <ProfileStack.Screen
+            name="EditProfile"
+            component={EditProfileScreen}
+            options={{ title: 'Edit Profile' }}
+          />
+          <ProfileStack.Screen
+            name="ChangePassword"
+            component={ChangePasswordScreen}
+            options={{ title: 'Change Password' }}
+          />
+        </>
+      )}
     </ProfileStack.Navigator>
   );
 }
 
+// ✅ Tabs — dynamic by role
 function MainTabs() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   return (
     <Tab.Navigator
       initialRouteName="Explore"
@@ -87,6 +105,7 @@ function MainTabs() {
         },
         tabBarIcon: ({ focused, color }) => {
           let iconName;
+
           switch (route.name) {
             case 'Explore':
               iconName = focused ? 'search' : 'search-outline';
@@ -98,21 +117,54 @@ function MainTabs() {
               iconName = focused ? 'cart' : 'cart-outline';
               break;
             case 'Profile':
-              iconName = focused ? 'person' : 'person-outline';
+              iconName = user
+                ? focused
+                  ? 'person'
+                  : 'person-outline'
+                : focused
+                ? 'log-in'
+                : 'log-in-outline';
+              break;
+            case 'Dashboard':
+              iconName = focused ? 'speedometer' : 'speedometer-outline';
               break;
           }
+
           return <Ionicons name={iconName} size={25} color={color} />;
         },
       })}
     >
+      {/* Common tabs */}
       <Tab.Screen name="Explore" component={HomeScreen} />
       <Tab.Screen name="Album" component={AlbumScreen} />
-      <Tab.Screen name="Cart" component={CartScreen} />
-      <Tab.Screen name="Profile" component={ProfileStackScreen} />
+
+      {/* Customer-only tabs */}
+      {!isAdmin && (
+        <>
+          <Tab.Screen name="Cart" component={CartScreen} />
+          <Tab.Screen
+            name="Profile"
+            component={ProfileStackScreen}
+            options={{
+              title: user ? 'Profile' : 'Login',
+            }}
+          />
+        </>
+      )}
+
+      {/* Admin-only tab */}
+      {isAdmin && (
+        <Tab.Screen
+          name="Dashboard"
+          component={AdminDashboardScreen}
+          options={{ title: 'Dashboard' }}
+        />
+      )}
     </Tab.Navigator>
   );
 }
 
+// ✅ Main App
 export default function App() {
   return (
     <AuthProvider>
@@ -142,6 +194,18 @@ export default function App() {
             name="AfterCheckoutDetail"
             component={AfterCheckoutDetailScreen}
             options={{ headerShown: false }}
+          />
+
+          {/* ✅ Admin-only routes */}
+          <Stack.Screen
+            name="AdminDashboard"
+            component={AdminDashboardScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ManageOrders"
+            component={ManageOrdersScreen}
+            options={{ title: 'Manage Orders' }}
           />
         </Stack.Navigator>
       </NavigationContainer>

@@ -20,7 +20,8 @@ const LoginScreen = ({ navigation }) => {
   const [loginError, setLoginError] = useState('');
   const [fadeAnim] = useState(new Animated.Value(0));
 
-  const { login } = useAuth();
+  // const { login } = useAuth();
+  const { login, user } = useAuth();
 
   const validateField = (field, value) => {
     let error = '';
@@ -59,7 +60,29 @@ const LoginScreen = ({ navigation }) => {
 
     if (success) {
       setLoginError('');
-      navigation.goBack();
+
+      // 👇 redirect based on role
+      setTimeout(() => {
+        if (user?.role === 'admin') {
+          navigation.replace('AdminDashboard');
+        } else {
+          if (user && user.role === 'admin') {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'AdminDashboard' }],
+            });
+          } else if (user) {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'HomeTabs' }],
+            });
+          } else {
+            console.warn('No user data found after login.');
+          }
+
+
+        }
+      }, 200);
     } else {
       setLoginError('Invalid email or password.');
       Animated.timing(fadeAnim, {
