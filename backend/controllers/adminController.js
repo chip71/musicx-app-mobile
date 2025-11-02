@@ -7,19 +7,20 @@ exports.getRevenueStats = async (req, res) => {
     const { range = 'week' } = req.query;
     const validStatuses = ['paid', 'delivered', 'completed'];
     const now = new Date();
-    let matchCondition = { status: { $in: validStatuses } };
+    const matchCondition = { status: { $in: validStatuses } };
 
-    // ✅ Nếu range=day → chỉ lấy đơn trong NGÀY HÔM NAY
+    // ✅ Filter by range
     if (range === 'day') {
-      const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
       matchCondition.orderDate = { $gte: startOfDay, $lte: endOfDay };
     }
 
     const orders = await Order.find(matchCondition);
     if (!orders.length) return res.json([]);
 
-    // ✅ Gom nhóm theo range
     const revenueMap = new Map();
 
     orders.forEach(order => {
@@ -27,13 +28,11 @@ exports.getRevenueStats = async (req, res) => {
       let key;
 
       if (range === 'day') {
-        // nhóm theo giờ trong ngày
-        const hour = date.getHours().toString().padStart(2, '0');
-        key = `${hour}:00`;
+        key = `${date.getHours().toString().padStart(2, '0')}:00`;
       } else if (range === 'week') {
-        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-        const week = Math.ceil(((date - firstDayOfYear) / 86400000 + firstDayOfYear.getDay() + 1) / 7);
-        key = `${date.getFullYear()}-W${week}`;
+        const firstDay = new Date(date.getFullYear(), 0, 1);
+        const week = Math.ceil(((date - firstDay) / 86400000 + firstDay.getDay() + 1) / 7);
+        key = `${date.getFullYear()}-W${String(week).padStart(2, '0')}`;
       } else {
         key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       }
@@ -41,12 +40,8 @@ exports.getRevenueStats = async (req, res) => {
       revenueMap.set(key, (revenueMap.get(key) || 0) + (order.totalAmount || 0));
     });
 
-    // ✅ Sắp xếp kết quả
     const sorted = Array.from(revenueMap.entries())
-      .sort(([a], [b]) => {
-        if (range === 'day') return parseInt(a) - parseInt(b);
-        return new Date(a) - new Date(b);
-      })
+      .sort(([a], [b]) => a.localeCompare(b))
       .map(([label, amount]) => ({ label, amount }));
 
     res.json(sorted);
@@ -61,14 +56,16 @@ exports.getAdminStats = async (req, res) => {
   try {
     const validStatuses = ['paid', 'delivered', 'completed'];
 
-    const totalRevenueAgg = await Order.aggregate([
-      { $match: { status: { $in: validStatuses } } },
-      { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } },
+    const [totalRevenueAgg, totalOrders, totalUsers] = await Promise.all([
+      Order.aggregate([
+        { $match: { status: { $in: validStatuses } } },
+        { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } },
+      ]),
+      Order.countDocuments(),
+      User.countDocuments(),
     ]);
 
     const totalRevenue = totalRevenueAgg[0]?.totalRevenue || 0;
-    const totalOrders = await Order.countDocuments();
-    const totalUsers = await User.countDocuments();
 
     res.json({ totalRevenue, totalOrders, totalUsers });
   } catch (err) {

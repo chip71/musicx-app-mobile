@@ -17,7 +17,7 @@ import { LineChart } from 'react-native-chart-kit';
 import { useAuth } from '../context/AuthContext';
 
 const screenWidth = Dimensions.get('window').width;
-const YOUR_COMPUTER_IP = '192.168.137.1';
+const YOUR_COMPUTER_IP = '192.168.110.163';
 const PORT = 9999;
 
 const API_URL =
@@ -29,28 +29,31 @@ const AdminDashboardScreen = ({ navigation }) => {
   const [revenueData, setRevenueData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('week');
-  const [stats, setStats] = useState({ totalRevenue: 0, totalOrders: 0, totalUsers: 0 });
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalUsers: 0,
+  });
   const { logout } = useAuth();
 
-  // 🧭 Fetch chart + stats
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       const [revRes, statRes] = await Promise.all([
-        axios.get(`${API_URL}/api/admin/revenue?range=${range}`),
-        axios.get(`${API_URL}/api/admin/stats`),
+        axios.get(`${API_URL}/api/admin/revenue?range=${range}`, { timeout: 5000 }),
+        axios.get(`${API_URL}/api/admin/stats`, { timeout: 5000 }),
       ]);
       setRevenueData(revRes.data || []);
       setStats(statRes.data || {});
     } catch (err) {
       console.error('Dashboard Fetch Error:', err.message);
-      if (err.code === 'ERR_NETWORK') {
+      if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK') {
         Alert.alert(
           'Connection Error',
-          `Cannot connect to server at ${API_URL}. \n\n1️⃣ Check if backend is running.\n2️⃣ Verify your IP (${YOUR_COMPUTER_IP}).`
+          `Không thể kết nối tới server tại ${API_URL}.\n\n💡 Kiểm tra:\n1️⃣ Backend đã chạy chưa?\n2️⃣ IP (${YOUR_COMPUTER_IP}) có đúng không?\n3️⃣ Thiết bị có cùng mạng Wi-Fi không?`
         );
       } else {
-        Alert.alert('Error', 'Failed to load dashboard data.');
+        Alert.alert('Error', 'Không thể tải dữ liệu dashboard.');
       }
     } finally {
       setLoading(false);
@@ -61,32 +64,25 @@ const AdminDashboardScreen = ({ navigation }) => {
     fetchDashboardData();
   }, [range]);
 
-  // 📊 Chart data
   const chartData = {
     labels: revenueData.map((r) => r.label),
     datasets: [
       {
         data: revenueData.map((r) => r.amount),
         strokeWidth: 3,
-        color: () => '#444', // xám đậm
+        color: () => '#222',
       },
     ],
   };
 
   const chartConfig = {
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
+    backgroundGradientFrom: '#fff',
+    backgroundGradientTo: '#fff',
     decimalPlaces: 0,
     color: (opacity = 1) => `rgba(0,0,0,${opacity})`,
     labelColor: (opacity = 1) => `rgba(80,80,80,${opacity})`,
-    propsForDots: {
-      r: '4',
-      strokeWidth: '1.5',
-      stroke: '#555',
-    },
-    propsForBackgroundLines: {
-      stroke: '#e5e5e5',
-    },
+    propsForDots: { r: '4', strokeWidth: '1.5', stroke: '#444' },
+    propsForBackgroundLines: { stroke: '#e5e5e5' },
   };
 
   return (
@@ -94,9 +90,9 @@ const AdminDashboardScreen = ({ navigation }) => {
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Admin Dashboard</Text>
 
-        {/* 💎 Overview Cards */}
+        {/* Stats */}
         <View style={styles.statsRow}>
-          <View style={[styles.card, { backgroundColor: '#f0f0f0' }]}>
+          <View style={[styles.card, { backgroundColor: '#f5f5f5' }]}>
             <Ionicons name="cash-outline" size={22} color="#333" />
             <Text style={[styles.cardValue, { color: '#007AFF' }]}>
               {stats.totalRevenue?.toLocaleString() || 0}₫
@@ -104,24 +100,20 @@ const AdminDashboardScreen = ({ navigation }) => {
             <Text style={styles.cardLabel}>Total Revenue</Text>
           </View>
 
-          <View style={[styles.card, { backgroundColor: '#f0f0f0' }]}>
+          <View style={[styles.card, { backgroundColor: '#f5f5f5' }]}>
             <Ionicons name="cart-outline" size={22} color="#333" />
-            <Text style={[styles.cardValue, { color: '#FF9500' }]}>
-              {stats.totalOrders || 0}
-            </Text>
+            <Text style={[styles.cardValue, { color: '#FF9500' }]}>{stats.totalOrders || 0}</Text>
             <Text style={styles.cardLabel}>Total Orders</Text>
           </View>
 
-          <View style={[styles.card, { backgroundColor: '#f0f0f0' }]}>
+          <View style={[styles.card, { backgroundColor: '#f5f5f5' }]}>
             <Ionicons name="people-outline" size={22} color="#333" />
-            <Text style={[styles.cardValue, { color: '#34C759' }]}>
-              {stats.totalUsers || 0}
-            </Text>
+            <Text style={[styles.cardValue, { color: '#34C759' }]}>{stats.totalUsers || 0}</Text>
             <Text style={styles.cardLabel}>Users</Text>
           </View>
         </View>
 
-        {/* 🔁 Range Selector */}
+        {/* Range Selector */}
         <View style={styles.rangeContainer}>
           {['day', 'week', 'month'].map((r) => (
             <TouchableOpacity
@@ -129,16 +121,14 @@ const AdminDashboardScreen = ({ navigation }) => {
               style={[styles.rangeButton, range === r && styles.activeRange]}
               onPress={() => setRange(r)}
             >
-              <Text
-                style={[styles.rangeText, range === r && styles.activeRangeText]}
-              >
+              <Text style={[styles.rangeText, range === r && styles.activeRangeText]}>
                 {r.toUpperCase()}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* 📈 Revenue Chart */}
+        {/* Revenue Chart */}
         {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color="#444" />
@@ -149,8 +139,8 @@ const AdminDashboardScreen = ({ navigation }) => {
             width={screenWidth - 30}
             height={250}
             yAxisSuffix="₫"
-            fromZero={true} // ✅ Bắt đầu từ 0₫
-            segments={5} // ✅ Chia đều 5 mốc
+            fromZero
+            segments={5}
             formatYLabel={(y) => {
               const value = Number(y);
               if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
@@ -162,12 +152,10 @@ const AdminDashboardScreen = ({ navigation }) => {
             style={styles.chart}
           />
         ) : (
-          <Text style={{ textAlign: 'center', color: 'gray' }}>
-            No revenue data available
-          </Text>
+          <Text style={{ textAlign: 'center', color: 'gray' }}>No revenue data available</Text>
         )}
 
-        {/* 🧩 Management Section */}
+        {/* Management */}
         <Text style={styles.sectionTitle}>Management</Text>
         <View style={styles.actions}>
           <TouchableOpacity
@@ -176,6 +164,14 @@ const AdminDashboardScreen = ({ navigation }) => {
           >
             <Ionicons name="albums" size={22} color="#000" />
             <Text style={styles.actionText}>Manage Albums</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('ManageArtists')}
+          >
+            <Ionicons name="musical-notes-outline" size={22} color="#000" />
+            <Text style={styles.actionText}>Manage Artists</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -203,7 +199,7 @@ const AdminDashboardScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* 🚪 Logout */}
+        {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
           <Ionicons name="log-out" size={22} color="#fff" />
           <Text style={styles.logoutText}>Logout</Text>
@@ -215,89 +211,25 @@ const AdminDashboardScreen = ({ navigation }) => {
 
 export default AdminDashboardScreen;
 
-// 💅 Styles
 const styles = StyleSheet.create({
   safeContainer: { flex: 1, backgroundColor: '#fff' },
   container: { flex: 1, padding: 16 },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  card: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 14,
-    marginHorizontal: 4,
-    borderRadius: 12,
-  },
-  cardValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 4,
-  },
-  cardLabel: {
-    fontSize: 13,
-    color: '#555',
-  },
-  rangeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  rangeButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginHorizontal: 4,
-    borderRadius: 8,
-    backgroundColor: '#e0e0e0',
-  },
-  activeRange: { backgroundColor: '#333' },
+  title: { fontSize: 26, fontWeight: '700', color: '#000', marginBottom: 16, textAlign: 'center' },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  card: { flex: 1, alignItems: 'center', paddingVertical: 14, marginHorizontal: 4, borderRadius: 12 },
+  cardValue: { fontSize: 18, fontWeight: 'bold', marginTop: 4 },
+  cardLabel: { fontSize: 13, color: '#555' },
+  rangeContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 10 },
+  rangeButton: { paddingVertical: 8, paddingHorizontal: 16, marginHorizontal: 4, borderRadius: 8, backgroundColor: '#e0e0e0' },
+  activeRange: { backgroundColor: '#222' },
   rangeText: { color: '#000', fontWeight: '600' },
   activeRangeText: { color: '#fff' },
-  chart: {
-    marginVertical: 10,
-    borderRadius: 16,
-    alignSelf: 'center',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    marginTop: 24,
-    marginBottom: 8,
-  },
+  chart: { marginVertical: 10, borderRadius: 16, alignSelf: 'center' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#000', marginTop: 24, marginBottom: 8 },
   actions: { marginTop: 8 },
-  actionButton: {
-    backgroundColor: '#f7f7f7',
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  actionText: {
-    color: '#000',
-    marginLeft: 10,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  logoutBtn: {
-    backgroundColor: '#222',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 14,
-    borderRadius: 10,
-    marginTop: 20,
-  },
+  actionButton: { backgroundColor: '#f7f7f7', flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 10, marginBottom: 10 },
+  actionText: { color: '#000', marginLeft: 10, fontSize: 16, fontWeight: '500' },
+  logoutBtn: { backgroundColor: '#222', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 10, marginTop: 20 },
   logoutText: { color: '#fff', fontWeight: '600', marginLeft: 8 },
   centered: { justifyContent: 'center', alignItems: 'center', height: 200 },
 });

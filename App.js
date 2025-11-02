@@ -27,6 +27,8 @@ import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 // Screens (Admin)
 import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
 import ManageOrdersScreen from './src/screens/ManageOrdersScreen'; // ✅ NEW IMPORT
+import ManageAlbumsScreen from './src/screens/ManageAlbumsScreen'; // ✅ NEW
+import ManageArtistsScreen from './src/screens/ManageArtistsScreen';
 
 // Navigation setup
 const Stack = createNativeStackNavigator();
@@ -122,8 +124,8 @@ function MainTabs() {
                   ? 'person'
                   : 'person-outline'
                 : focused
-                ? 'log-in'
-                : 'log-in-outline';
+                  ? 'log-in'
+                  : 'log-in-outline';
               break;
             case 'Dashboard':
               iconName = focused ? 'speedometer' : 'speedometer-outline';
@@ -207,6 +209,17 @@ export default function App() {
             component={ManageOrdersScreen}
             options={{ title: 'Manage Orders' }}
           />
+          <Stack.Screen
+            name="ManageAlbums"
+            component={ManageAlbumsScreen}
+            options={{ title: "Manage Albums" }}
+          />
+          <Stack.Screen
+            name="ManageArtists"
+            component={ManageArtistsScreen}
+            options={{ title: 'Manage Artists' }}
+          />
+
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

@@ -1,49 +1,62 @@
-// This file is the main entry point for your backend
+// server.js (main backend entry)
 require('dotenv').config({ path: __dirname + '/../.env' });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
-// --- ADD THIS LINE (1 of 2) ---
-// This imports the api.js file you just created
-const apiRoutes = require('./api.js'); 
+// --- Import API routes ---
+const apiRoutes = require('./api.js');
 
-// Initialize the app
 const app = express();
 
-// --- UPDATE #2: CORS Configuration for Web ---
-// Configure CORS to allow our web app
+/* =========================================================
+   🌐 CORS CONFIG (cho web + mobile)
+========================================================= */
 const corsOptions = {
-  origin: 'http://localhost:8081', // This is the default port for Expo Web
-  optionsSuccessStatus: 200 
+  origin: [
+    'http://localhost:8081', // Expo Web
+    'http://localhost:3000', // React Web (nếu dùng)
+    'http://10.0.2.2:9999',  // Android emulator (backend)
+    'http://192.168.',       // Mạng LAN (Expo mobile)
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+  optionsSuccessStatus: 200,
 };
-app.use(cors(corsOptions));
-// --- END OF UPDATE ---
 
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// --- MongoDB Connection ---
+/* =========================================================
+   📦 CONNECT TO MONGO
+========================================================= */
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
-  throw new Error('MONGO_URI is not defined in your .env file. Please create it.');
+  throw new Error('❌ MONGO_URI missing in .env');
 }
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('MongoDB Connected Successfully! 🚀'))
-  .catch(err => console.error('MongoDB Connection Error:', err));
+mongoose
+  .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('✅ MongoDB Connected Successfully! 🚀'))
+  .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
-// --- Test Route ---
+/* =========================================================
+   🔗 API ROUTES
+========================================================= */
+app.use('/api', apiRoutes);
+
+/* =========================================================
+   🧪 TEST ROUTE
+========================================================= */
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the MusicX API! 🎧' });
 });
 
-// --- ADD THIS LINE (2 of 2) ---
-// This tells Express to use your API routes
-// Any request starting with /api will be handled by apiRoutes
-app.use('/api', apiRoutes);
-
-// --- Start the Server ---
+/* =========================================================
+   🚀 START SERVER
+========================================================= */
 const PORT = process.env.PORT || 9999;
 app.listen(PORT, () => {
-  console.log(`Backend server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running at: http://localhost:${PORT}`);
 });
