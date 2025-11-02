@@ -79,6 +79,12 @@ router.delete('/albums/:id', safe(albumController.deleteAlbum));
 router.post('/artists', safe(artistController.createArtist));
 router.put('/artists/:id', safe(artistController.updateArtist));
 router.delete('/artists/:id', safe(artistController.deleteArtist));
+/* =========================================================
+   💿 ADMIN GENRE CRUD (for ManageGenresScreen)
+========================================================= */
+router.post('/genres', safe(genreController.createGenre));
+router.put('/genres/:id', safe(genreController.updateGenre));
+router.delete('/genres/:id', safe(genreController.deleteGenre));
 
 /* =========================================================
    💰 PAYMENTS (MoMo)

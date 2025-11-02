@@ -11,11 +11,9 @@ const getGenres = async (req, res) => {
   }
 };
 
-// GET a single genre by its MongoDB _id
+// GET a single genre by ID
 const getGenreById = async (req, res) => {
   try {
-    // ✅ --- THIS IS THE FIX ---
-    // Use Mongoose's findById, which automatically handles the string _id
     const genre = await Genre.findById(req.params.id);
 
     if (!genre) {
@@ -23,7 +21,6 @@ const getGenreById = async (req, res) => {
     }
     res.json(genre);
   } catch (err) {
-    // Handle potential CastError if the ID format is invalid
     if (err.name === 'CastError') {
       return res.status(400).json({ message: 'Invalid Genre ID format' });
     }
@@ -32,7 +29,73 @@ const getGenreById = async (req, res) => {
   }
 };
 
+// CREATE a new genre
+const createGenre = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Genre name is required' });
+    }
+
+    const newGenre = new Genre({ name: name.trim() });
+    await newGenre.save();
+
+    res.status(201).json({ message: 'Genre created successfully', genre: newGenre });
+  } catch (err) {
+    console.error('Error creating genre:', err);
+    res.status(500).json({ message: 'Server error creating genre' });
+  }
+};
+
+// UPDATE a genre by ID
+const updateGenre = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Genre name is required' });
+    }
+
+    const genre = await Genre.findByIdAndUpdate(
+      req.params.id,
+      { name: name.trim() },
+      { new: true, runValidators: true }
+    );
+
+    if (!genre) {
+      return res.status(404).json({ message: 'Genre not found' });
+    }
+
+    res.json({ message: 'Genre updated successfully', genre });
+  } catch (err) {
+    if (err.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid Genre ID format' });
+    }
+    console.error(`Error updating genre ${req.params.id}:`, err);
+    res.status(500).json({ message: 'Server error updating genre' });
+  }
+};
+
+// DELETE a genre by ID
+const deleteGenre = async (req, res) => {
+  try {
+    const genre = await Genre.findByIdAndDelete(req.params.id);
+    if (!genre) {
+      return res.status(404).json({ message: 'Genre not found' });
+    }
+    res.json({ message: 'Genre deleted successfully' });
+  } catch (err) {
+    if (err.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid Genre ID format' });
+    }
+    console.error(`Error deleting genre ${req.params.id}:`, err);
+    res.status(500).json({ message: 'Server error deleting genre' });
+  }
+};
+
 module.exports = {
   getGenres,
   getGenreById,
+  createGenre,
+  updateGenre,
+  deleteGenre,
 };

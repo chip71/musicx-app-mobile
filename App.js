@@ -29,6 +29,7 @@ import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
 import ManageOrdersScreen from './src/screens/ManageOrdersScreen'; // ✅ NEW IMPORT
 import ManageAlbumsScreen from './src/screens/ManageAlbumsScreen'; // ✅ NEW
 import ManageArtistsScreen from './src/screens/ManageArtistsScreen';
+import ManageGenresScreen from './src/screens/ManageGenresScreen';
 
 // Navigation setup
 const Stack = createNativeStackNavigator();
@@ -218,6 +219,10 @@ export default function App() {
             name="ManageArtists"
             component={ManageArtistsScreen}
             options={{ title: 'Manage Artists' }}
+          /><Stack.Screen
+            name="ManageGenres"
+            component={ManageGenresScreen}
+            options={{ title: 'Manage Genres' }}
           />
 
         </Stack.Navigator>
