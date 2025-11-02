@@ -22,38 +22,34 @@ const Api = {
     const response = await axios.get(`${API_URL}/api/albums/${id}`);
     return response.data;
   },
-  // New: Fetch albums by Artist ID (excluding the current album)
   fetchAlbumsByArtist: async (artistId, currentAlbumId) => {
     const response = await axios.get(
       `${API_URL}/api/albums/artist/${artistId}?exclude=${currentAlbumId}`
     );
     return response.data;
   },
-  // Fetch recommended albums by genre ID (excluding the current album)
   fetchRecommendedAlbums: async (genreId, currentAlbumId) => {
     const response = await axios.get(
       `${API_URL}/api/albums/genre/${genreId}?exclude=${currentAlbumId}`
     );
     return response.data;
   },
-  // We need master lists for AlbumRow/AlbumCard to look up names in the recommended section
   fetchArtists: async () => (await axios.get(`${API_URL}/api/artists`)).data,
   fetchGenres: async () => (await axios.get(`${API_URL}/api/genres`)).data,
 };
 
 const AlbumDetailScreen = ({ route, navigation }) => {
-  const { albumId } = route.params; // albumId is the string _id
-  const { addToCart } = useAuth();
+  const { albumId } = route.params;
+  const { addToCart, user } = useAuth();
 
   const [album, setAlbum] = useState(null);
   const [recommendedAlbums, setRecommendedAlbums] = useState([]);
-  const [artistAlbums, setArtistAlbums] = useState([]); // NEW STATE
+  const [artistAlbums, setArtistAlbums] = useState([]);
   const [artists, setArtists] = useState([]);
   const [genres, setGenres] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // --- Fetch Album Data and Recommendations ---
   useEffect(() => {
     if (!albumId) return;
     const loadData = async () => {
@@ -61,33 +57,25 @@ const AlbumDetailScreen = ({ route, navigation }) => {
         setIsLoading(true);
         setError(null);
 
-        // Fetch core album data (populated by backend)
         const fetchedAlbum = await Api.fetchAlbumById(albumId);
-
-        // Fetch all required peripheral data simultaneously for local lookup (AlbumRow)
         const [allArtists, allGenres] = await Promise.all([
           Api.fetchArtists(),
           Api.fetchGenres(),
         ]);
         setArtists(allArtists);
         setGenres(allGenres);
-
         setAlbum(fetchedAlbum);
 
-        // --- Fetch Recommendations ---
         const genreIdString = fetchedAlbum.genreID?._id;
-        const artistIdString = fetchedAlbum.artistID?._id; // Get the artist ID
+        const artistIdString = fetchedAlbum.artistID?._id;
 
-        // 1. Fetch by Genre (existing logic)
         if (genreIdString) {
           const recommended = await Api.fetchRecommendedAlbums(genreIdString, albumId);
           setRecommendedAlbums(recommended);
         }
 
-        // 2. Fetch by Artist (NEW LOGIC)
         if (artistIdString) {
           const artistRecs = await Api.fetchAlbumsByArtist(artistIdString, albumId);
-          // Lọc bỏ album hiện tại nếu API chưa xử lý
           const filtered = artistRecs.filter(a => a._id !== albumId);
           setArtistAlbums(filtered);
         }
@@ -102,18 +90,14 @@ const AlbumDetailScreen = ({ route, navigation }) => {
     loadData();
   }, [albumId]);
 
-  // --- Handle Add to Cart ---
   const handleAddToCart = () => {
     if (!album || !album.stock || album.stock <= 0) {
-      alert('This album is sold out!');
-      return;
+      return; // stock check
     }
     addToCart(album);
     navigation.navigate('MainTabs', { screen: 'Cart' });
   };
 
-
-  // --- Loading/Error States ---
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -134,14 +118,8 @@ const AlbumDetailScreen = ({ route, navigation }) => {
     );
   }
 
-  // --- Destructure Data Safely ---
-  const {
-    name, image, artistID, genreID, price, currency, stock, format, sku, description, spotify, youtube,
-  } = album;
-
-  // Get genre name for the recommendation title
+  const { name, image, artistID, genreID, price, currency, stock, format, sku, description, spotify, youtube } = album;
   const genreName = genreID?.name || 'Related';
-  // Get artist name for the recommendation title
   const artistName = artistID?.name || 'This Artist';
 
   return (
@@ -149,7 +127,6 @@ const AlbumDetailScreen = ({ route, navigation }) => {
       <Navbar showSearch={false} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* --- 1. Album Image & Info --- */}
         <View style={styles.topSection}>
           <Image
             source={{ uri: image || 'https://via.placeholder.com/150' }}
@@ -158,16 +135,9 @@ const AlbumDetailScreen = ({ route, navigation }) => {
           />
           <View style={styles.coreInfo}>
             <Text style={styles.albumName}>{name}</Text>
-            {/* Access populated data (artistID is now an object with name) */}
-            <Text style={styles.artistName}>
-              {artistName}
-            </Text>
-            <Text style={styles.genreText}>
-              Genre: {genreID?.name || 'Unknown'}
-            </Text>
-            <Text style={styles.priceText}>
-              {price ? `${price.toLocaleString()} ${currency || 'VND'}` : '—'}
-            </Text>
+            <Text style={styles.artistName}>{artistName}</Text>
+            <Text style={styles.genreText}>Genre: {genreID?.name || 'Unknown'}</Text>
+            <Text style={styles.priceText}>{price ? `${price.toLocaleString()} ${currency || 'VND'}` : '—'}</Text>
             <Text style={styles.stockText}>
               {stock && stock > 0 ? (
                 <>In Stock: <Text style={{ fontWeight: 'bold' }}>{stock}</Text></>
@@ -175,11 +145,9 @@ const AlbumDetailScreen = ({ route, navigation }) => {
                 <Text style={{ color: 'red', fontWeight: 'bold' }}>SOLD OUT</Text>
               )}
             </Text>
-
           </View>
         </View>
 
-        {/* --- 2. Social Links --- */}
         {(spotify || youtube) && (
           <View style={styles.socialLinksContainer}>
             {spotify && (
@@ -195,7 +163,6 @@ const AlbumDetailScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* --- 3. Product Details --- */}
         <View style={styles.detailSection}>
           <Text style={styles.sectionTitle}>Details</Text>
           <View style={styles.detailRow}>
@@ -207,45 +174,33 @@ const AlbumDetailScreen = ({ route, navigation }) => {
             <Text style={styles.detailValue}>{sku || '—'}</Text>
           </View>
           <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.descriptionText}>
-            {description || 'No description available.'}
-          </Text>
+          <Text style={styles.descriptionText}>{description || 'No description available.'}</Text>
 
-          {album.stock && album.stock > 0 && (
-            <TouchableOpacity style={styles.buyButton} onPress={handleAddToCart}>
-              <Text style={styles.buyButtonText}>Add to Cart</Text>
-            </TouchableOpacity>
+          {stock && stock > 0 && (
+            <>
+              {user?.role !== 'admin' ? (
+                <TouchableOpacity style={styles.buyButton} onPress={handleAddToCart}>
+                  <Text style={styles.buyButtonText}>Add to Cart</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.adminTooltip}>Admins cannot buy items</Text>
+              )}
+            </>
           )}
 
         </View>
 
-        {/* --- 4. Recommended Albums by ARTIST (NEW SECTION) --- */}
         {artistAlbums.length > 0 && (
           <View style={styles.recommendationSection}>
-            <Text style={styles.recommendationTitle}>
-              More from {artistName}
-            </Text>
-            {/* AlbumRow uses the fetched artists/genres to look up unpopulated names */}
-            <AlbumRow
-              albums={artistAlbums}
-              artists={artists}
-              genres={genres}
-            />
+            <Text style={styles.recommendationTitle}>More from {artistName}</Text>
+            <AlbumRow albums={artistAlbums} artists={artists} genres={genres} />
           </View>
         )}
 
-        {/* --- 5. Recommended Albums by Genre (Original Section) --- */}
         {recommendedAlbums.length > 0 && (
           <View style={styles.recommendationSection}>
-            <Text style={styles.recommendationTitle}>
-              More {genreName} Music
-            </Text>
-            {/* AlbumRow uses the fetched artists/genres to look up unpopulated names */}
-            <AlbumRow
-              albums={recommendedAlbums}
-              artists={artists}
-              genres={genres}
-            />
+            <Text style={styles.recommendationTitle}>More {genreName} Music</Text>
+            <AlbumRow albums={recommendedAlbums} artists={artists} genres={genres} />
           </View>
         )}
 
@@ -254,24 +209,13 @@ const AlbumDetailScreen = ({ route, navigation }) => {
   );
 };
 
-// --- STYLES (No changes needed, the existing recommendation styles work fine) ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFF' },
   scrollContent: { paddingBottom: 40 },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-  },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF' },
   errorText: { color: 'red', fontSize: 16, marginBottom: 20 },
   backButton: { color: '#007AFF', fontSize: 16 },
-  topSection: {
-    flexDirection: 'row',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
+  topSection: { flexDirection: 'row', padding: 20, borderBottomWidth: 1, borderBottomColor: '#EEE' },
   albumImage: { width: 150, height: 150, borderRadius: 8, marginRight: 15 },
   coreInfo: { flex: 1, justifyContent: 'space-between' },
   albumName: { fontSize: 22, fontWeight: 'bold', color: '#000' },
@@ -279,55 +223,26 @@ const styles = StyleSheet.create({
   genreText: { fontSize: 14, color: '#777' },
   priceText: { fontSize: 20, fontWeight: 'bold', color: '#000', marginTop: 10 },
   stockText: { fontSize: 14, color: 'green' },
-  socialLinksContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
+  socialLinksContainer: { flexDirection: 'row', justifyContent: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#EEE' },
   iconButton: { marginHorizontal: 20 },
   detailSection: { padding: 20 },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 10,
-    marginTop: 15,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#000', marginBottom: 10, marginTop: 15 },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
   detailLabel: { fontSize: 16, color: '#555', fontWeight: '500' },
   detailValue: { fontSize: 16, color: '#000' },
   descriptionText: { fontSize: 16, color: '#333', lineHeight: 24 },
-  buyButton: {
-    backgroundColor: '#000',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 30,
-  },
+  buyButton: { backgroundColor: '#000', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 30 },
   buyButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
+  recommendationSection: { marginTop: 20, marginBottom: 20, borderTopWidth: 1, borderTopColor: '#EEE', paddingTop: 10 },
+  recommendationTitle: { fontSize: 20, fontWeight: 'bold', color: '#000', marginLeft: 16, marginBottom: 12 },
+  adminTooltip: {
+  color: '#ff0000ff',
+  fontSize: 14,
+  textAlign: 'center',
+  marginTop: 20,
+  fontStyle: 'italic',
+},
 
-  recommendationSection: {
-    marginTop: 20,
-    marginBottom: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#EEE',
-    paddingTop: 10,
-  },
-  recommendationTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-    marginLeft: 16,
-    marginBottom: 12,
-  },
 });
 
 export default AlbumDetailScreen;

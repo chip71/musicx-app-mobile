@@ -1,130 +1,153 @@
 const User = require('../models/users.js');
 const crypto = require('crypto');
-// ✅ FIX: Import Mongoose
-const mongoose = require('mongoose'); 
+const mongoose = require('mongoose');
 
-// Hash helper (consider moving to a utils file and using bcrypt)
+// --- Helper: Hash password ---
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-// --- GET User By Id (Existing function) ---
+// --- GET All Users ---
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-passwordHash'); // exclude password
+    res.json(users);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ message: 'Server error fetching users' });
+  }
+};
+
+// --- GET User by ID ---
 const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-passwordHash');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid User ID' });
     }
+    const user = await User.findById(id).select('-passwordHash');
+    if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(user);
   } catch (err) {
-    if (err.name === 'CastError') {
-      return res.status(400).json({ message: 'Invalid User ID format' });
-    }
     console.error(`Error fetching user ${req.params.id}:`, err);
     res.status(500).json({ message: 'Server error fetching user' });
   }
 };
 
-// --- UPDATE User Profile (Name) ---
-const updateUserProfile = async (req, res) => {
+// --- CREATE User ---
+const createUser = async (req, res) => {
   try {
-    // ✅ FIX: Read userId from request body (sent by frontend)
-    const userId = req.body.userId;
-    if (!userId) {
-       return res.status(400).json({ message: 'User ID missing in request body' });
+    const { name, email, password, role } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
     }
 
-    // ✅ Validate if it's a potentially valid ObjectId format before querying
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-       return res.status(400).json({ message: 'Invalid User ID format in request body' });
-    }
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ message: 'Email already exists' });
 
-    const user = await User.findById(userId); // Use the ID from the body
+    const passwordHash = `sha256$${hashPassword(password)}`;
+    const newUser = new User({ name, email, passwordHash, role: role || 'customer' });
+    await newUser.save();
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Update name if provided
-    user.name = req.body.name || user.name;
-
-    const updatedUser = await user.save();
-
-    // Return updated user data (excluding password)
-    res.json({
-      _id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
+    res.status(201).json({
+      _id: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
     });
-
   } catch (err) {
-    console.error('Error updating profile:', err);
-    if (err.name === 'ValidationError') {
-      return res.status(400).json({ message: err.message });
+    console.error('Error creating user:', err);
+    res.status(500).json({ message: 'Server error creating user' });
+  }
+};
+
+// --- UPDATE User (name, email, role) ---
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, role } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid User ID' });
     }
-    // Added check for CastError during findById
-    if (err.name === 'CastError') {
-       return res.status(400).json({ message: 'Invalid User ID format during lookup' });
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (email && email !== user.email) {
+      const exists = await User.findOne({ email });
+      if (exists) return res.status(400).json({ message: 'Email already exists' });
+      user.email = email;
     }
-    res.status(500).json({ message: 'Server error updating profile' });
+
+    if (name) user.name = name;
+    if (role) user.role = role;
+
+    const updated = await user.save();
+    res.json({
+      _id: updated._id,
+      name: updated.name,
+      email: updated.email,
+      role: updated.role,
+    });
+  } catch (err) {
+    console.error('Error updating user:', err);
+    res.status(500).json({ message: 'Server error updating user' });
+  }
+};
+
+// --- DELETE User ---
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid User ID' });
+    }
+    const user = await User.findByIdAndDelete(id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    res.status(500).json({ message: 'Server error deleting user' });
   }
 };
 
 // --- CHANGE User Password ---
 const changeUserPassword = async (req, res) => {
   try {
-    // ✅ FIX: Read userId from request body (sent by frontend)
-    const userId = req.body.userId;
-    if (!userId) {
-       return res.status(400).json({ message: 'User ID missing in request body' });
-    }
-
-    // ✅ Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-       return res.status(400).json({ message: 'Invalid User ID format in request body' });
-    }
-
+    const { id } = req.params;
     const { currentPassword, newPassword } = req.body;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid User ID' });
+    }
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: 'Please provide current and new passwords' });
+      return res.status(400).json({ message: 'Current and new password required' });
     }
 
-    const user = await User.findById(userId); // Use the ID from the body
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Verify current password
-    const storedHashParts = user.passwordHash.split('$');
-    const storedHash = storedHashParts[storedHashParts.length - 1];
-    const currentInputHash = hashPassword(currentPassword);
-
-    if (currentInputHash !== storedHash) {
+    const storedHash = user.passwordHash.split('$')[1];
+    if (hashPassword(currentPassword) !== storedHash) {
       return res.status(401).json({ message: 'Incorrect current password' });
     }
 
-    // Hash and update to new password
-    const newHashed = hashPassword(newPassword);
-    user.passwordHash = `sha256$${newHashed}`; // Update hash
-
+    user.passwordHash = `sha256$${hashPassword(newPassword)}`;
     await user.save();
 
     res.json({ message: 'Password updated successfully' });
-
   } catch (err) {
-      console.error('Error changing password:', err);
-      // Added check for CastError during findById
-      if (err.name === 'CastError') {
-        return res.status(400).json({ message: 'Invalid User ID format during lookup' });
-      }
-      res.status(500).json({ message: 'Server error changing password' });
+    console.error('Error changing password:', err);
+    res.status(500).json({ message: 'Server error changing password' });
   }
 };
 
-
 module.exports = {
+  getAllUsers,
   getUserById,
-  updateUserProfile,
+  createUser,
+  updateUser,
+  deleteUser,
   changeUserPassword,
 };

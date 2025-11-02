@@ -85,6 +85,14 @@ router.delete('/artists/:id', safe(artistController.deleteArtist));
 router.post('/genres', safe(genreController.createGenre));
 router.put('/genres/:id', safe(genreController.updateGenre));
 router.delete('/genres/:id', safe(genreController.deleteGenre));
+/* =========================================================
+   👥 ADMIN USER CRUD
+========================================================= */
+router.get('/admin/users', safe(userController.getAllUsers));
+router.post('/admin/users', safe(userController.createUser));
+router.put('/admin/users/:id', safe(userController.updateUser));
+router.delete('/admin/users/:id', safe(userController.deleteUser));
+router.put('/admin/users/:id/password', safe(userController.changeUserPassword));
 
 /* =========================================================
    💰 PAYMENTS (MoMo)
