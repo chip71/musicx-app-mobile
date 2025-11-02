@@ -74,6 +74,13 @@ router.put('/albums/:id', safe(albumController.updateAlbum));
 router.delete('/albums/:id', safe(albumController.deleteAlbum));
 
 /* =========================================================
+   💿 ADMIN ARTIST CRUD (for ManageArtistsScreen)
+========================================================= */
+router.post('/artists', safe(artistController.createArtist));
+router.put('/artists/:id', safe(artistController.updateArtist));
+router.delete('/artists/:id', safe(artistController.deleteArtist));
+
+/* =========================================================
    💰 PAYMENTS (MoMo)
 ========================================================= */
 router.post('/payments/momo/ipn', safe(paymentController.momoNotify));
