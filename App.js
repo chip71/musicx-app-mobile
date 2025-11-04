@@ -13,7 +13,6 @@ import AlbumDetailScreen from './src/screens/AlbumDetailScreen';
 import ArtistDetailScreen from './src/screens/ArtistDetailScreen';
 import CartScreen from './src/screens/CartScreen';
 import CheckoutScreen from './src/screens/CheckoutScreen';
-import AfterCheckoutDetailScreen from './src/screens/AfterCheckoutDetailScreen';
 
 // Screens (Profile)
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -26,8 +25,8 @@ import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 
 // Screens (Admin)
 import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
-import ManageOrdersScreen from './src/screens/ManageOrdersScreen'; // ✅ NEW IMPORT
-import ManageAlbumsScreen from './src/screens/ManageAlbumsScreen'; // ✅ NEW
+import ManageOrdersScreen from './src/screens/ManageOrdersScreen';
+import ManageAlbumsScreen from './src/screens/ManageAlbumsScreen';
 import ManageArtistsScreen from './src/screens/ManageArtistsScreen';
 import ManageGenresScreen from './src/screens/ManageGenresScreen';
 import ManageUsersScreen from './src/screens/ManageUsersScreen';
@@ -37,7 +36,7 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const ProfileStack = createNativeStackNavigator();
 
-// ✅ Profile stack (user login/register/profile)
+// Profile stack
 function ProfileStackScreen() {
   const { user } = useAuth();
 
@@ -89,7 +88,7 @@ function ProfileStackScreen() {
   );
 }
 
-// ✅ Tabs — dynamic by role
+// Main tabs
 function MainTabs() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -109,66 +108,39 @@ function MainTabs() {
         },
         tabBarIcon: ({ focused, color }) => {
           let iconName;
-
           switch (route.name) {
-            case 'Explore':
-              iconName = focused ? 'search' : 'search-outline';
-              break;
-            case 'Album':
-              iconName = focused ? 'albums' : 'albums-outline';
-              break;
-            case 'Cart':
-              iconName = focused ? 'cart' : 'cart-outline';
-              break;
+            case 'Explore': iconName = focused ? 'search' : 'search-outline'; break;
+            case 'Album': iconName = focused ? 'albums' : 'albums-outline'; break;
+            case 'Cart': iconName = focused ? 'cart' : 'cart-outline'; break;
             case 'Profile':
-              iconName = user
-                ? focused
-                  ? 'person'
-                  : 'person-outline'
-                : focused
-                  ? 'log-in'
-                  : 'log-in-outline';
+              iconName = user ? (focused ? 'person' : 'person-outline') : (focused ? 'log-in' : 'log-in-outline');
               break;
-            case 'Dashboard':
-              iconName = focused ? 'speedometer' : 'speedometer-outline';
-              break;
+            case 'Dashboard': iconName = focused ? 'speedometer' : 'speedometer-outline'; break;
           }
-
           return <Ionicons name={iconName} size={25} color={color} />;
         },
       })}
     >
-      {/* Common tabs */}
       <Tab.Screen name="Explore" component={HomeScreen} />
       <Tab.Screen name="Album" component={AlbumScreen} />
-
-      {/* Customer-only tabs */}
       {!isAdmin && (
         <>
           <Tab.Screen name="Cart" component={CartScreen} />
           <Tab.Screen
             name="Profile"
             component={ProfileStackScreen}
-            options={{
-              title: user ? 'Profile' : 'Login',
-            }}
+            options={{ title: user ? 'Profile' : 'Login' }}
           />
         </>
       )}
-
-      {/* Admin-only tab */}
       {isAdmin && (
-        <Tab.Screen
-          name="Dashboard"
-          component={AdminDashboardScreen}
-          options={{ title: 'Dashboard' }}
-        />
+        <Tab.Screen name="Dashboard" component={AdminDashboardScreen} options={{ title: 'Dashboard' }} />
       )}
     </Tab.Navigator>
   );
 }
 
-// ✅ Main App
+// Main App
 export default function App() {
   return (
     <AuthProvider>
@@ -179,58 +151,17 @@ export default function App() {
             component={MainTabs}
             options={{ headerShown: false }}
           />
-          <Stack.Screen
-            name="AlbumDetail"
-            component={AlbumDetailScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ArtistDetail"
-            component={ArtistDetailScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Checkout"
-            component={CheckoutScreen}
-            options={{ title: 'Checkout' }}
-          />
-          <Stack.Screen
-            name="AfterCheckoutDetail"
-            component={AfterCheckoutDetailScreen}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="AlbumDetail" component={AlbumDetailScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Checkout" component={CheckoutScreen} options={{ title: 'Checkout' }} />
 
-          {/* ✅ Admin-only routes */}
-          <Stack.Screen
-            name="AdminDashboard"
-            component={AdminDashboardScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ManageOrders"
-            component={ManageOrdersScreen}
-            options={{ title: 'Manage Orders' }}
-          />
-          <Stack.Screen
-            name="ManageAlbums"
-            component={ManageAlbumsScreen}
-            options={{ title: "Manage Albums" }}
-          />
-          <Stack.Screen
-            name="ManageArtists"
-            component={ManageArtistsScreen}
-            options={{ title: 'Manage Artists' }}
-          />
-          <Stack.Screen
-            name="ManageUsers"
-            component={ManageUsersScreen}
-            options={{ title: 'Manage Users' }}
-          />
-          <Stack.Screen
-            name="ManageGenres"
-            component={ManageGenresScreen}
-            options={{ title: 'Manage Genres' }}
-          />
+          {/* Admin routes */}
+          <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="ManageOrders" component={ManageOrdersScreen} options={{ title: 'Manage Orders' }} />
+          <Stack.Screen name="ManageAlbums" component={ManageAlbumsScreen} options={{ title: "Manage Albums" }} />
+          <Stack.Screen name="ManageArtists" component={ManageArtistsScreen} options={{ title: 'Manage Artists' }} />
+          <Stack.Screen name="ManageUsers" component={ManageUsersScreen} options={{ title: 'Manage Users' }} />
+          <Stack.Screen name="ManageGenres" component={ManageGenresScreen} options={{ title: 'Manage Genres' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

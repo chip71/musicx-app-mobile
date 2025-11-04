@@ -20,7 +20,7 @@ exports.getAllOrders = async (req, res) => {
 };
 
 /* ============================================================
-   ✅ GET ORDER BY ID (Admin or User)
+   ✅ GET ORDER BY ID
 ============================================================ */
 exports.getOrderById = async (req, res) => {
   try {
@@ -43,6 +43,7 @@ exports.getOrderById = async (req, res) => {
 
 /* ============================================================
    ✅ UPDATE ORDER STATUS (Dropdown)
+   - Nếu admin đổi sang “cancelled” → cộng lại stock
 ============================================================ */
 exports.updateOrder = async (req, res) => {
   try {
@@ -54,12 +55,19 @@ exports.updateOrder = async (req, res) => {
       return res.status(404).json({ message: `Order with id ${id} not found.` });
     }
 
-    // Các trạng thái hợp lệ
     const validStatuses = ['pending', 'pending_payment', 'shipped', 'delivered', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status value.' });
     }
 
+    // 🟨 Nếu admin đổi sang “cancelled” mà đơn chưa bị huỷ trước đó
+    if (status === 'cancelled' && order.status !== 'cancelled') {
+      for (const item of order.items) {
+        await Album.findByIdAndUpdate(item.albumId, { $inc: { stock: item.quantity } });
+      }
+    }
+
+    // ✅ Cập nhật trạng thái
     order.status = status;
     const updatedOrder = await order.save();
 
@@ -95,9 +103,6 @@ exports.deleteOrder = async (req, res) => {
   }
 };
 
-/* ============================================================
-   ✅ CREATE ORDER (User)
-============================================================ */
 exports.createOrder = async (req, res) => {
   try {
     const {
@@ -112,10 +117,38 @@ exports.createOrder = async (req, res) => {
       paymentMethod
     } = req.body;
 
-    if (!userId || !items?.length) {
-      return res.status(400).json({ message: 'Missing required fields: userId or items.' });
+    // --- 1️⃣ Validate required fields ---
+    if (!userId || !items?.length || subtotal == null || shippingPrice == null || totalAmount == null) {
+      return res.status(400).json({
+        message: 'Missing required fields: userId, items, subtotal, shippingPrice, or totalAmount.'
+      });
     }
 
+    // --- 2️⃣ Check stock for each album ---
+    for (const item of items) {
+      const album = await Album.findById(item.albumId);
+      if (!album) {
+        return res.status(404).json({ message: `Album with id ${item.albumId} not found.` });
+      }
+      if (album.stock < item.quantity) {
+        return res.status(400).json({
+          message: `Not enough stock for "${album.title}". Available: ${album.stock}, requested: ${item.quantity}`
+        });
+      }
+    }
+
+    // --- 3️⃣ Trừ stock ---
+    const updatedAlbums = [];
+    for (const item of items) {
+      const updatedAlbum = await Album.findByIdAndUpdate(
+        item.albumId,
+        { $inc: { stock: -item.quantity } },
+        { new: true }
+      );
+      updatedAlbums.push(updatedAlbum);
+    }
+
+    // --- 4️⃣ Tạo order ---
     const order = new Order({
       orderId: `ORD-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
       userId,
@@ -127,21 +160,33 @@ exports.createOrder = async (req, res) => {
       shippingAddress,
       shippingMethod: shippingMethod || 'standard',
       paymentMethod: paymentMethod || 'cod',
-      status: 'pending'
+      status: paymentMethod === 'momo' ? 'pending_payment' : 'pending'
     });
 
     const savedOrder = await order.save();
 
     res.status(201).json({
-      message: '✅ Order created successfully',
+      message: '✅ Order created successfully and stock updated',
       order: savedOrder
     });
   } catch (error) {
     console.error('❌ Error creating order:', error);
+
+    // --- 5️⃣ Rollback stock nếu lỗi xảy ra ---
+    if (req.body?.items?.length) {
+      for (const item of req.body.items) {
+        await Album.findByIdAndUpdate(item.albumId, { $inc: { stock: item.quantity } });
+      }
+    }
+
     res.status(500).json({ message: 'Error creating order', error: error.message });
   }
 };
-// [GET] /api/users/:userId/orders
+
+
+/* ============================================================
+   ✅ GET USER ORDERS
+============================================================ */
 exports.getUserOrders = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -154,21 +199,34 @@ exports.getUserOrders = async (req, res) => {
   }
 };
 
-// [PUT] /api/orders/:id/cancel
+/* ============================================================
+   ✅ CANCEL ORDER (User)
+   - Cộng lại stock cho từng album
+============================================================ */
 exports.cancelOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const order = await Order.findById(id);
-    if (!order) return res.status(404).json({ message: 'Order not found.' });
 
+    if (!order) return res.status(404).json({ message: 'Order not found.' });
     if (order.status === 'cancelled')
       return res.status(400).json({ message: 'Order already cancelled.' });
 
+    // 1️⃣ Cộng lại stock
+    for (const item of order.items) {
+      await Album.findByIdAndUpdate(item.albumId, { $inc: { stock: item.quantity } });
+    }
+
+    // 2️⃣ Cập nhật trạng thái
     order.status = 'cancelled';
     await order.save();
 
-    res.status(200).json({ message: 'Order cancelled successfully', order });
+    res.status(200).json({
+      message: '✅ Order cancelled and stock restored',
+      order
+    });
   } catch (error) {
+    console.error('❌ Error cancelling order:', error);
     res.status(500).json({ message: 'Error cancelling order', error: error.message });
   }
 };
