@@ -11,13 +11,10 @@ import {
 } from "react-native";
 import axios from "axios";
 import { Dropdown } from "react-native-element-dropdown";
+// 🔗 Use deployed Render backend
+const API_URL = "https://musicx-mobile-backend.onrender.com";
+console.log("🔗 Using API:", API_URL);
 
-const API_URL =
-  Platform.OS === "android"
-    ? "http://10.0.2.2:9999"
-    : Platform.OS === "web"
-    ? "http://localhost:9999"
-    : "http://192.168.137.1:9999";
 
 const statusItems = [
   { label: "Pending", value: "pending" },

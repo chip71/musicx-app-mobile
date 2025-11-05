@@ -15,13 +15,10 @@ import {
 import axios from "axios";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import Modal from "react-native-modal";
+// 🔗 Use deployed Render backend
+const API_URL = "https://musicx-mobile-backend.onrender.com";
+console.log("🔗 Using API:", API_URL);
 
-const YOUR_COMPUTER_IP = "192.168.110.163";
-const PORT = 9999;
-const API_URL =
-    Platform.OS === "android"
-        ? `http://10.0.2.2:${PORT}`
-        : `http://${YOUR_COMPUTER_IP}:${PORT}`;
 
 const roles = ["customer", "admin"];
 

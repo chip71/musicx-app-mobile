@@ -16,10 +16,10 @@ const Navbar = ({ searchText, setSearchText, showSearch = true }) => {
           {/* <TouchableOpacity onPress={() => navigation.navigate('CartScreen')}>
             <Ionicons name="cart-outline" size={24} color="#000" />
           </TouchableOpacity> */}
-
+{/* 
           <TouchableOpacity style={{ marginLeft: 18 }}>
             <Ionicons name="mail-outline" size={24} color="#000" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 

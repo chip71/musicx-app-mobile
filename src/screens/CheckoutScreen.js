@@ -16,12 +16,9 @@ import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
 // --- LOCAL BACKEND URL ---
-const API_URL =
-  Platform.OS === 'android'
-    ? 'http://10.0.2.2:9999'   // Android emulator
-    : Platform.OS === 'ios'
-    ? 'http://192.168.110.163:9999'  // iOS simulator
-    : 'http://localhost:9999'; // Web / React Native Web
+const API_URL = "https://musicx-mobile-backend.onrender.com";
+console.log("🔗 Using API:", API_URL);
+
 
 const CheckoutScreen = ({ navigation }) => {
   const { user, cart, clearCart } = useAuth();

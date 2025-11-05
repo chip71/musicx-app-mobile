@@ -15,10 +15,9 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext'; 
 
 // --- API URL SETUP ---
-const API_URL =
-  Platform.OS === 'android' ? 'http://10.0.2.2:9999'
-  : Platform.OS === 'web' ? 'http://localhost:9999'
-  : 'http://192.168.137.1:9999';
+const API_URL = "https://musicx-mobile-backend.onrender.com";
+console.log("🔗 Using API:", API_URL);
+
 
 const EditProfileScreen = ({ navigation }) => {
   const { user, setUser } = useAuth();

@@ -17,10 +17,9 @@ import axios from 'axios';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import AlbumCard from '../components/AlbumCard'; // Reuses AlbumCard
 
-const API_URL =
-  Platform.OS === 'web'
-    ? 'http://localhost:9999'
-    : 'http://192.168.137.1:9999';
+const API_URL = "https://musicx-mobile-backend.onrender.com";
+console.log("🔗 Using API:", API_URL);
+
 
 const { width } = Dimensions.get('window');
 

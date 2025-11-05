@@ -17,10 +17,9 @@ import { Ionicons } from "@expo/vector-icons";
 import AlbumCard from "../components/AlbumCard";
 import Navbar from "../components/Navbar";
 
-let API_URL =
-  Platform.OS === "web"
-    ? "http://localhost:9999"
-    : "http://192.168.137.1:9999";
+const API_URL = "https://musicx-mobile-backend.onrender.com";
+console.log("🔗 Using API:", API_URL);
+
 
 const Api = {
   fetchAlbums: async () => (await axios.get(`${API_URL}/api/albums`)).data,

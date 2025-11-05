@@ -11,10 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import AlbumRow from '../components/AlbumRow'; // Used for recommendations
 
 // --- API URL SETUP ---
-const API_URL =
-  Platform.OS === 'web'
-    ? 'http://localhost:9999'
-    : 'http://192.168.137.1:9999';
+const API_URL = 'https://musicx-mobile-backend.onrender.com';
 
 // --- API CALLS ---
 const Api = {

@@ -4,12 +4,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 // --- API URL Setup ---
-const API_URL =
-  Platform.OS === 'android'
-    ? 'http://10.0.2.2:9999' // Android Emulator
-    : Platform.OS === 'web'
-    ? 'http://localhost:9999' // Web
-    : 'http://192.168.137.1:9999'; // Physical device (replace with your IP)
+const API_URL = "https://musicx-mobile-backend.onrender.com";
+console.log("🔗 Using API:", API_URL);
+
 
 // --- Create Context ---
 const AuthContext = createContext();

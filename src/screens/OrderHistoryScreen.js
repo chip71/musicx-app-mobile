@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,15 @@ import {
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
-  Platform,
 } from 'react-native';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native'; // ✅ import
 
 // --- API URL SETUP ---
-const API_URL =
-  Platform.OS === 'android'
-    ? 'http://10.0.2.2:9999'
-    : Platform.OS === 'web'
-    ? 'http://localhost:9999'
-    : 'http://192.168.137.1:9999'; // Update IP if needed
+const API_URL = "https://musicx-mobile-backend.onrender.com";
+console.log("🔗 Using API:", API_URL);
 
 // --- Helper to format date ---
 const formatDate = (dateString) => {
@@ -52,7 +48,6 @@ const OrderCard = ({ order, onViewDetail }) => (
       </Text>
     </View>
 
-    {/* ✅ View Details Button */}
     <TouchableOpacity style={styles.detailButton} onPress={() => onViewDetail(order)}>
       <Text style={styles.detailButtonText}>View Details</Text>
     </TouchableOpacity>
@@ -66,28 +61,32 @@ const OrderHistoryScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user?._id) {
-        setError('You must be logged in to view order history.');
-        setIsLoading(false);
-        return;
-      }
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await axios.get(`${API_URL}/api/users/${user._id}/orders`);
-        setOrders(response.data.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate)));
-      } catch (err) {
-        console.error('Error fetching orders:', err);
-        setError('Could not load order history.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // ✅ Tách fetchOrders ra ngoài useEffect để gọi lại khi focus
+  const fetchOrders = async () => {
+    if (!user?._id) {
+      setError('You must be logged in to view order history.');
+      setIsLoading(false);
+      return;
+    }
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await axios.get(`${API_URL}/api/users/${user._id}/orders`);
+      setOrders(response.data.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate)));
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError('Could not load order history.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchOrders();
-  }, [user]);
+  // ✅ Reload orders khi màn hình được focus (ví dụ: back từ OrderDetail)
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+    }, [user])
+  );
 
   if (isLoading) {
     return (
@@ -112,7 +111,10 @@ const OrderHistoryScreen = ({ navigation }) => {
         data={orders}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
-          <OrderCard order={item} onViewDetail={() => navigation.navigate('OrderDetail', { order: item })} />
+          <OrderCard
+            order={item}
+            onViewDetail={() => navigation.navigate('OrderDetail', { order: item })}
+          />
         )}
         ListHeaderComponent={<Text style={styles.screenTitle}>My Orders</Text>}
         ListEmptyComponent={
@@ -162,7 +164,7 @@ const styles = StyleSheet.create({
   statuspending: { backgroundColor: '#ff960cff' },
   statuspending_payment: { backgroundColor: '#bf9f00ff' },
   statusshipped: { backgroundColor: '#1E90FF' },
-  statusdelivered: { backgroundColor: '#1DB954' }, // ✅ Spotify green accent
+  statusdelivered: { backgroundColor: '#1DB954' },
   statuscancelled: { backgroundColor: '#FF3B30' },
   totalAmount: { fontWeight: '700', fontSize: 16, color: '#000' },
   detailButton: {
@@ -172,11 +174,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  detailButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 15,
-  },
+  detailButtonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
 });
 
 export default OrderHistoryScreen;

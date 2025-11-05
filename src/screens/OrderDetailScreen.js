@@ -11,13 +11,10 @@ import {
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 
-// ✅ Match your API setup style
-const API_URL =
-  Platform.OS === 'android'
-    ? 'http://10.0.2.2:9999'
-    : Platform.OS === 'web'
-      ? 'http://localhost:9999'
-      : 'http://192.168.137.1:9999';
+// 🔗 Use deployed Render backend
+const API_URL = "https://musicx-mobile-backend.onrender.com";
+console.log("🔗 Using API:", API_URL);
+
 
 const OrderDetailScreen = ({ route }) => {
   const { order } = route.params;

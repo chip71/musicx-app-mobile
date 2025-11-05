@@ -17,13 +17,11 @@ import { LineChart } from 'react-native-chart-kit';
 import { useAuth } from '../context/AuthContext';
 
 const screenWidth = Dimensions.get('window').width;
-const YOUR_COMPUTER_IP = '192.168.110.163';
-const PORT = 9999;
+// 🔗 Use deployed Render backend
+const API_URL = "https://musicx-mobile-backend.onrender.com";
+console.log("🔗 Using API:", API_URL);
 
-const API_URL =
-  Platform.OS === 'android'
-    ? `http://10.0.2.2:${PORT}`
-    : `http://${YOUR_COMPUTER_IP}:${PORT}`;
+
 
 const AdminDashboardScreen = ({ navigation }) => {
   const [revenueData, setRevenueData] = useState([]);

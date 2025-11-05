@@ -16,8 +16,8 @@ import AlbumRow from '../components/AlbumRow';
 import Navbar from '../components/Navbar';
 
 // --- API URL SETUP ---
-let API_URL =
-  Platform.OS === 'web' ? 'http://localhost:9999' : 'http://192.168.137.1:9999';
+// ✅ Luôn dùng backend Render (cloud)
+const API_URL = 'https://musicx-mobile-backend.onrender.com';
 // --- END OF API URL SETUP ---
 
 const Api = {
