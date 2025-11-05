@@ -10,24 +10,35 @@ const apiRoutes = require('./api.js');
 
 const app = express();
 
+// /* =========================================================
+//    🌐 CORS CONFIG (cho web + mobile)
+// ========================================================= */
+// const corsOptions = {
+//   origin: [
+//     'http://localhost:8081', // Expo Web
+//     'http://localhost:3000', // React Web (nếu dùng)
+//     'http://10.0.2.2:9999',  // Android emulator (backend)
+//     'http://192.168.',       // Mạng LAN (Expo mobile)
+//   ],
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+//   credentials: true,
+//   optionsSuccessStatus: 200,
+// };
+
+// app.use(cors(corsOptions));
+// app.use(express.json());
+
+
 /* =========================================================
-   🌐 CORS CONFIG (cho web + mobile)
+   🌐 CORS CONFIG (Cho phép Expo / Mobile / Web / Cloud)
 ========================================================= */
-const corsOptions = {
-  origin: [
-    'http://localhost:8081', // Expo Web
-    'http://localhost:3000', // React Web (nếu dùng)
-    'http://10.0.2.2:9999',  // Android emulator (backend)
-    'http://192.168.',       // Mạng LAN (Expo mobile)
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true,
-  optionsSuccessStatus: 200,
-};
+app.use(cors({
+  origin: "*", 
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: false
+}));
 
-app.use(cors(corsOptions));
 app.use(express.json());
-
 /* =========================================================
    📦 CONNECT TO MONGO
 ========================================================= */
