@@ -32,8 +32,15 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "44f1dec1-1102-43b3-bbd0-85837ccfebbb"
+        "projectId": "aa13d30b-0944-49d7-b6c4-246e1577746b"
       }
+    },
+    "owner": "musicx",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/aa13d30b-0944-49d7-b6c4-246e1577746b"
     }
   }
 }

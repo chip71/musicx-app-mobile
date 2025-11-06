@@ -22,6 +22,7 @@
     "expo-image-picker": "^17.0.8",
     "expo-router": "~6.0.13",
     "expo-status-bar": "~3.0.8",
+    "expo-updates": "~29.0.12",
     "expres": "^0.0.5",
     "express": "^5.1.0",
     "fs": "^0.0.1-security",
